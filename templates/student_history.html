@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ student_info[1] }} | البروفايل</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <!-- هيدر البروفايل -->
+    <div class="profile-header">
+      <div class="profile-avatar">{{ student_info[1][0] }}</div>
+      <div class="profile-info">
+        <h1>{{ student_info[1] }}</h1>
+        <p style="color:rgba(255,255,255,0.7);margin:4px 0;">
+          🆔 {{ student_info[2] }}
+          &nbsp;|&nbsp; 📅 {{ student_info[7] or 1 }} حصة/أسبوع
+          {% if student_info[6] != '—' %}
+          &nbsp;|&nbsp; 🗂️ {{ student_info[6] }}
+          {% endif %}
+          {% if student_info[3] %}
+          &nbsp;|&nbsp; 📱 {{ student_info[3] }}
+          {% endif %}
+        </p>
+        {% if student_info[5] %}
+        <p style="background:rgba(255,190,11,0.2);border-radius:8px;padding:6px 12px;
+          font-size:0.82rem;margin-top:8px;display:inline-block;">
+          📝 {{ student_info[5] }}
+        </p>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/edit_student/{{ student_info[0] }}" class="btn btn-outline"
+          style="border-color:rgba(255,255,255,0.3);color:white;">✏️ تعديل</a>
+        <a href="/student_pdf/{{ student_info[2] }}" class="btn btn-outline"
+          style="border-color:rgba(255,255,255,0.3);color:white;" target="_blank">📄 PDF</a>
+        <button onclick="sendDailyReport()" id="reportBtn"
+          style="padding:10px 18px;border-radius:12px;border:2px solid rgba(255,255,255,0.3);
+            background:rgba(255,255,255,0.15);color:white;cursor:pointer;
+            font-family:'Cairo',sans-serif;font-weight:700;font-size:0.88rem;
+            transition:all 0.15s;display:flex;align-items:center;gap:6px;"
+          onmouseover="this.style.background='rgba(255,255,255,0.28)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          📱 تقرير اليوم لولي الأمر
+        </button>
+      </div>
+    </div>
+
+    <!-- بطاقات الإحصاء -->
+    <div class="profile-stats">
+      <div class="pstat-card">
+        <div class="pstat-val" style="color:var(--primary);">{{ total_att }}</div>
+        <div class="pstat-lbl">حصة حضر</div>
+      </div>
+      <div class="pstat-card">
+        <div class="pstat-val" style="color:var(--warning);">{{ late_count }}</div>
+        <div class="pstat-lbl">مرة متأخر</div>
+      </div>
+      <div class="pstat-card">
+        <div class="pstat-val" style="color:var(--success);">{{ total_paid }} ج</div>
+        <div class="pstat-lbl">إجمالي مدفوع</div>
+      </div>
+      <div class="pstat-card">
+        <div class="pstat-val" style="color:#06d6a0;">
+          {% if hw_total > 0 %}{{ hw_done }}/{{ hw_total }}{% else %}—{% endif %}
+        </div>
+        <div class="pstat-lbl">واجبات عملها</div>
+      </div>
+      <div class="pstat-card">
+        <div class="pstat-val" style="color:var(--primary);">
+          {% if ex_avg > 0 %}{{ ex_avg }}%{% else %}—{% endif %}
+        </div>
+        <div class="pstat-lbl">متوسط امتحانات</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="showTab('att',this)">📅 الحضور ({{ total_att }})</button>
+      <button class="tab-btn"        onclick="showTab('hw',this)">📝 الواجبات ({{ hw_total }})</button>
+      <button class="tab-btn"        onclick="showTab('ex',this)">📊 الامتحانات ({{ exam_history|length }})</button>
+    </div>
+
+    <!-- تبويب الحضور -->
+    <div id="tab-att" class="tab-content">
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          {% if attendance_history %}
+          <table>
+            <thead><tr><th>#</th><th>التاريخ</th><th>الوقت</th><th style="text-align:center;">الحالة</th></tr></thead>
+            <tbody>
+              {% for a in attendance_history %}
+              <tr>
+                <td style="color:var(--gray);">{{ loop.index }}</td>
+                <td>{{ a[0] }}</td>
+                <td>{{ a[1][:5] if a[1] else '—' }}</td>
+                <td style="text-align:center;">
+                  <span class="{% if a[2]=='متأخر' %}status-late{% else %}status-present{% endif %}">
+                    {{ a[2] or 'حاضر' }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state"><div class="empty-icon">📅</div><p>لا يوجد حضور بعد</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- تبويب الواجبات -->
+    <div id="tab-hw" class="tab-content" style="display:none;">
+      <div class="card">
+        <!-- إضافة واجب يدوي -->
+        <div class="card-header">
+          <h2>📝 الواجبات</h2>
+          <button class="btn btn-primary btn-sm" onclick="toggleAddHw()">➕ تسجيل يدوي</button>
+        </div>
+        <div id="addHwForm" style="display:none;padding:16px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="date" id="hwDate" class="form-control" style="width:160px;"
+              value="{{ now[:10] if now is defined else '' }}">
+            <button class="btn btn-success" onclick="addHwManual(1)">✅ عمله</button>
+            <button class="btn btn-danger"  onclick="addHwManual(0)">❌ ما عملوش</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;">
+          {% if homework_history %}
+          <table>
+            <thead><tr><th>#</th><th>التاريخ</th><th style="text-align:center;">الحالة</th></tr></thead>
+            <tbody>
+              {% for h in homework_history %}
+              <tr>
+                <td style="color:var(--gray);">{{ loop.index }}</td>
+                <td>{{ h[0] }}</td>
+                <td style="text-align:center;">
+                  {% if h[1] %}
+                  <span class="status-present">✅ عمله</span>
+                  {% else %}
+                  <span class="status-absent">❌ ما عملوش</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state"><div class="empty-icon">📝</div><p>لا توجد سجلات واجبات</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- تبويب الامتحانات -->
+    <div id="tab-ex" class="tab-content" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <h2>📊 الامتحانات</h2>
+          <a href="/mark_exam" class="btn btn-primary btn-sm">➕ إضافة درجة</a>
+        </div>
+        <div class="card-body" style="padding:0;">
+          {% if exam_history %}
+          <table>
+            <thead><tr><th>#</th><th>التاريخ</th><th style="text-align:center;">الدرجة</th><th style="text-align:center;">النسبة</th></tr></thead>
+            <tbody>
+              {% for e in exam_history %}
+              {%- set pct = ((e[1]/e[2]*100)|int) if e[2] > 0 else 0 -%}
+              <tr>
+                <td style="color:var(--gray);">{{ loop.index }}</td>
+                <td>{{ e[0] }}</td>
+                <td style="text-align:center;font-weight:700;">{{ e[1] }}/{{ e[2] }}</td>
+                <td style="text-align:center;">
+                  <span class="badge {% if pct>=80 %}badge-success{% elif pct>=50 %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ pct }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state"><div class="empty-icon">📊</div><p>لا توجد درجات امتحانات</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<style>
+/* ── Profile Header ── */
+.profile-header {
+  display: flex; align-items: center; gap: 20px;
+  background: linear-gradient(135deg, var(--primary), #818cf8);
+  border-radius: 20px; padding: 24px 28px;
+  margin-bottom: 20px; flex-wrap: wrap;
+  color: white;
+}
+.profile-avatar {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 900; flex-shrink: 0;
+  border: 3px solid rgba(255,255,255,0.3);
+}
+.profile-info { flex: 1; min-width: 180px; }
+.profile-info h1 { font-size: 1.4rem; font-weight: 900; margin: 0; }
+
+/* ── Stats ── */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.pstat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px;
+  text-align: center;
+  box-shadow: var(--card-shadow);
+}
+.pstat-val { font-size: 1.3rem; font-weight: 900; line-height: 1; }
+.pstat-lbl { font-size: 0.7rem; color: var(--gray); margin-top: 4px; }
+
+/* ── Tabs ── */
+.tabs-bar {
+  display: flex; gap: 6px; margin-bottom: 16px;
+  border-bottom: 2px solid var(--border); padding-bottom: 0;
+}
+.tab-btn {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Cairo', sans-serif; font-size: 0.88rem;
+  font-weight: 700; color: var(--gray);
+  padding: 10px 18px; border-radius: 10px 10px 0 0;
+  margin-bottom: -2px; border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--primary); }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--light); }
+
+@media(max-width:700px) {
+  .profile-stats { grid-template-columns: repeat(3, 1fr); }
+  .profile-header { gap: 14px; padding: 18px; }
+  .profile-avatar { width: 54px; height: 54px; font-size: 1.5rem; }
+  .tabs-bar { overflow-x: auto; }
+}
+</style>
+
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).style.display = '';
+  btn.classList.add('active');
+}
+function toggleAddHw() {
+  const f = document.getElementById('addHwForm');
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+}
+async function sendDailyReport() {
+  const btn = document.getElementById('reportBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ جاري الإرسال...';
+  try {
+    const r = await fetch('/send_daily_report/{{ student_info[2] }}');
+    const d = await r.json();
+    btn.innerHTML = d.success ? '✅ تم الإرسال' : '❌ ' + d.message;
+    if (d.success) {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '📱 تقرير اليوم لولي الأمر';
+      }, 3000);
+    }
+  } catch(e) {
+    btn.innerHTML = '❌ خطأ في الاتصال';
+    btn.disabled = false;
+  }
+}
+async function addHwManual(done) {
+  const date = document.getElementById('hwDate').value;
+  if (!date) { alert('اختر التاريخ'); return; }
+  const r = await fetch('/api/homework', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({student_id: '{{ student_info[2] }}', done, date})
+  });
+  const d = await r.json();
+  if (d.success) location.reload();
+}
+</script>
+</body>
+</html>

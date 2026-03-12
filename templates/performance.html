@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقرير الأداء | {{ student_info[1] }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📊 تقرير الأداء</h1>
+        <p><a href="{{ url_for('students') }}" style="color:var(--primary);text-decoration:none;">الطلاب</a> ← {{ student_info[1] }}</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('student_history', student_id=student_info[2]) }}" class="btn btn-outline btn-sm">📋 السجل</a>
+        <button onclick="window.print()" class="btn btn-primary btn-sm">🖨️ طباعة</button>
+      </div>
+    </div>
+
+    <!-- Student Header -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:16px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.8rem;font-weight:900;">
+          {{ student_info[1][0] }}
+        </div>
+        <div style="flex:1;">
+          <h2 style="font-size:1.2rem;font-weight:800;">{{ student_info[1] }}</h2>
+          <p style="color:var(--gray);font-size:0.83rem;">{{ student_info[2] }}</p>
+        </div>
+        <!-- Summary Badges -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div style="background:rgba(67,97,238,0.08);border-radius:12px;padding:14px 20px;text-align:center;min-width:100px;">
+            <div style="font-size:1.6rem;font-weight:900;color:var(--primary);">{{ total_attendance }}</div>
+            <div style="font-size:0.75rem;color:var(--gray);">يوم حضور</div>
+          </div>
+          <div style="background:rgba(6,214,160,0.08);border-radius:12px;padding:14px 20px;text-align:center;min-width:100px;">
+            <div style="font-size:1.6rem;font-weight:900;color:var(--success);">{{ hw_avg }}%</div>
+            <div style="font-size:0.75rem;color:var(--gray);">متوسط الواجبات</div>
+          </div>
+          <div style="background:rgba(248,150,30,0.08);border-radius:12px;padding:14px 20px;text-align:center;min-width:100px;">
+            <div style="font-size:1.6rem;font-weight:900;color:var(--warning);">{{ ex_avg }}%</div>
+            <div style="font-size:0.75rem;color:var(--gray);">متوسط الامتحانات</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+   
+
+    <!-- Tables side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="tables-grid">
+      <div class="card">
+        <div class="card-header"><h2>📝 تفاصيل الواجبات</h2></div>
+        <div class="table-wrapper">
+          {% if homework_data %}
+          <table>
+            <thead><tr><th>التاريخ</th><th>الدرجة</th><th>%</th></tr></thead>
+            <tbody>
+              {% for row in homework_data %}
+              {% set pct = ((row[1]/row[2])*100)|int if row[2]>0 else 0 %}
+              <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }} / {{ row[2] }}</td>
+                <td>
+                  <span class="badge {% if pct>=80 %}badge-success{% elif pct>=50 %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ pct }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state"><div class="empty-icon">📝</div><p>لا توجد بيانات</p></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>📋 تفاصيل الامتحانات</h2></div>
+        <div class="table-wrapper">
+          {% if exam_data %}
+          <table>
+            <thead><tr><th>التاريخ</th><th>الدرجة</th><th>%</th></tr></thead>
+            <tbody>
+              {% for row in exam_data %}
+              {% set pct = ((row[1]/row[2])*100)|int if row[2]>0 else 0 %}
+              <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }} / {{ row[2] }}</td>
+                <td>
+                  <span class="badge {% if pct>=80 %}badge-success{% elif pct>=50 %}badge-warning{% else %}badge-danger{% endif %}">
+                    {{ pct }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state"><div class="empty-icon">📋</div><p>لا توجد بيانات</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<style>
+@media(max-width:700px){
+  .charts-grid,.tables-grid{grid-template-columns:1fr!important;}
+}
+@media print {
+  .sidebar, .topbar button, .btn { display: none !important; }
+  .main-content { margin: 0 !important; padding: 10px !important; }
+}
+</style>
+</body>
+</html>

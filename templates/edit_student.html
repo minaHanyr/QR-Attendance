@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>تعديل بيانات الطالب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title"><h1>✏️ تعديل بيانات الطالب</h1></div>
+      <a href="/students" class="btn btn-outline">← رجوع</a>
+    </div>
+
+    <div class="card" style="max-width:600px;">
+      <div class="card-body">
+        {# student = (id, name, session_fee, sessions_per_week, group_id, notes) #}
+        <form method="POST">
+
+          <div class="form-group">
+            <label class="form-label">👤 اسم الطالب *</label>
+            <input type="text" name="name" class="form-control"
+              value="{{ student[1] }}" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🆔 رقم الطالب</label>
+            <div class="form-control"
+              style="background:var(--light);color:var(--gray);cursor:not-allowed;">
+              {{ student[2] if student[2] is string else '—' }}
+            </div>
+            <small style="color:var(--gray);font-size:0.75rem;">لا يمكن تغيير الـ ID</small>
+          </div>
+
+          <!-- سعر الحصة + عدد الحصص -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">💰 سعر الحصة (ج)</label>
+              <input type="number" name="session_fee" class="form-control"
+                value="{{ student[2]|int }}" min="0" step="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">📅 الحصص في الأسبوع</label>
+              <div style="display:flex;gap:8px;">
+                {% for n in [1,2,3,4,5] %}
+                <label style="flex:1;text-align:center;">
+                  <input type="radio" name="sessions_per_week" value="{{ n }}"
+                    {% if (student[3] or 1) == n %}checked{% endif %}
+                    style="display:none;" class="session-radio">
+                  <div class="session-opt {% if (student[3] or 1) == n %}selected{% endif %}">{{ n }}</div>
+                </label>
+                {% endfor %}
+              </div>
+              <small style="color:var(--gray);font-size:0.75rem;margin-top:4px;display:block;" id="sessionsHint"></small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🗂️ المجموعة</label>
+            <select name="group_id" class="form-control">
+              <option value="">بدون مجموعة</option>
+              {% for g in groups %}
+              <option value="{{ g[0] }}"
+                {% if student[4] and student[4]|string == g[0]|string %}selected{% endif %}>
+                {{ g[1] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📝 ملاحظات</label>
+            <textarea name="notes" class="form-control" rows="2">{{ student[5] or '' }}</textarea>
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary" style="flex:1;padding:12px;font-size:1rem;">
+              💾 حفظ التعديلات
+            </button>
+            <a href="/students" class="btn btn-outline" style="padding:12px 20px;">إلغاء</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<style>
+.session-opt {
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--light);
+  color: var(--gray);
+}
+.session-opt.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+</style>
+
+<script>
+const hints = {
+  1: 'حصة واحدة كل أسبوع',
+  2: 'حصتان كل أسبوع',
+  3: '٣ حصص كل أسبوع',
+  4: '٤ حصص كل أسبوع',
+  5: '٥ حصص كل أسبوع (يومي)'
+};
+
+function updateHint() {
+  const checked = document.querySelector('.session-radio:checked');
+  if (checked)
+    document.getElementById('sessionsHint').textContent = hints[checked.value];
+}
+updateHint();
+
+document.querySelectorAll('.session-radio').forEach(radio => {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.session-opt').forEach(o => o.classList.remove('selected'));
+    this.parentElement.querySelector('.session-opt').classList.add('selected');
+    updateHint();
+  });
+});
+document.querySelectorAll('.session-opt').forEach(opt => {
+  opt.addEventListener('click', function() {
+    this.parentElement.querySelector('input').click();
+  });
+});
+</script>
+</body>
+</html>

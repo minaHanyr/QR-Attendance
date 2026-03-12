@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الواجبات | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📝 تسجيل الواجبات</h1>
+        <p>سجّل درجة واجب لطالب</p>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:560px;">
+      <div class="card-header"><h2>📝 بيانات الواجب</h2></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('mark_homework') }}">
+          <div class="form-grid" style="margin-bottom:20px;">
+            <div class="form-group">
+              <label for="student_id">اختر الطالب</label>
+              <select id="student_id" name="student_id" class="form-control" required>
+                {% for student in students %}
+                <option value="{{ student[2] }}">{{ student[1] }} ({{ student[2] }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="score">الدرجة</label>
+              <input type="number" id="score" name="score" class="form-control" min="0" placeholder="مثال: 8" required>
+            </div>
+            <div class="form-group">
+              <label for="max_score">الدرجة الكاملة</label>
+              <input type="number" id="max_score" name="max_score" class="form-control" min="1" placeholder="مثال: 10" required>
+            </div>
+          </div>
+
+          <!-- هل عمل الواجب؟ -->
+          <div style="background:var(--light); border-radius:var(--radius-sm); padding:16px; margin-bottom:20px;">
+            <p style="font-size:0.85rem; font-weight:600; margin-bottom:10px;">أو اختار بسرعة:</p>
+            <div style="display:flex; gap:10px;">
+              <button type="button" class="btn btn-success btn-sm" onclick="setScore(1,1)">✅ عمل الواجب</button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="setScore(0,1)">❌ لم يعمل</button>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn btn-primary btn-lg">✅ تسجيل الدرجة</button>
+            <a href="{{ url_for('students') }}" class="btn btn-outline btn-lg">إلغاء</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+function setScore(s, m) {
+  document.getElementById('score').value = s;
+  document.getElementById('max_score').value = m;
+}
+</script>
+</body>
+</html>

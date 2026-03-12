@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التقارير | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* أنماط عامة */
+    body {
+      font-family: 'Cairo', sans-serif;
+    }
+
+    /* تصميم البطاقات في وضع الموبايل */
+    .mobile-card-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .student-mobile-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .student-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .student-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .student-details h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .student-details p {
+      margin: 0;
+      color: #777;
+      font-size: 14px;
+    }
+
+    .attendance-stats {
+      display: flex;
+      gap: 16px;
+      justify-content: space-between;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-number {
+      font-size: 18px;
+      font-weight: bold;
+      color: #4CAF50;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #777;
+    }
+
+    .attendance-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn-danger {
+      background: #ff5252;
+      color: white;
+    }
+
+    .btn-primary {
+      background: #2196F3;
+      color: white;
+    }
+
+    /* إخفاء الجدول في وضع الموبايل */
+    @media (max-width: 768px) {
+      .table-wrapper {
+        display: none;
+      }
+    }
+
+    /* إخفاء البطاقات في وضع سطح المكتب */
+    @media (min-width: 769px) {
+      .mobile-card-container {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📊 التقارير</h1>
+        <p>سجل الحضور الكامل</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-danger" onclick="notifyAbsent()" id="notifyBtn">
+          📱 إشعار الغائبين
+        </button>
+        <a href="{{ url_for('download_excel') }}" class="btn btn-success">📥 تحميل Excel</a>
+      </div>
+    </div>
+
+    <div id="notifyResult" style="display:none;" class="scan-result show" style="margin-bottom:16px;"></div>
+
+    <!-- تصميم البطاقات في وضع الموبايل -->
+    <div class="mobile-card-container">
+      {% for row in data %}
+      <div class="student-mobile-card">
+        <div class="student-info">
+          <div class="student-avatar">{{ row[1][0] }}</div>
+          <div class="student-details">
+            <h3>{{ row[1] }}</h3>
+            <p>{{ row[2] }}</p>
+          </div>
+        </div>
+        <div class="attendance-stats">
+          <div class="stat-item">
+            <span class="stat-label">موجود</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">حاضر</span>
+          </div>
+        </div>
+        <div class="attendance-actions">
+          <a href="/delete_attendance/{{row[0]}}" class="btn btn-danger">حذف</a>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <p>لا يوجد بيانات حضور</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- تصميم الجدول في وضع سطح المكتب -->
+    <div class="table-wrapper">
+      <div class="card">
+        <div class="card-header"><h2>📋 سجل الحضور</h2></div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الطالب</th>
+              <th>رمز الطالب</th>
+              <th>التاريخ</th>
+              <th>الوقت</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>
+                <div class="student-row-card">
+                  <div class="student-avatar">{{ row[1][0] }}</div>
+                  <span>{{ row[1] }}</span>
+                </div>
+              </td>
+              <td><span class="badge badge-primary">{{ row[2] }}</span></td>
+              <td>{{ row[3] }}</td>
+              <td>{{ row[4] }}</td>
+              <td>
+                <a href="/delete_attendance/{{row[0]}}" class="btn btn-danger">حذف</a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-icon">📊</div>
+                  <p>لا يوجد بيانات حضور</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+async function notifyAbsent() {
+  const btn = document.getElementById('notifyBtn');
+  const res = document.getElementById('notifyResult');
+  btn.textContent = '⏳ جاري الإرسال...';
+  btn.disabled = true;
+  const today = new Date().toISOString().split('T')[0];
+  const r = await fetch('/notify_absent', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: 'date=' + today
+  });
+  const d = await r.json();
+  res.style.display = 'flex';
+  res.className = 'scan-result show ' + (d.success ? 'success' : 'error');
+  res.textContent = d.message;
+  btn.textContent = '📱 إشعار الغائبين';
+  btn.disabled = false;
+  setTimeout(() => res.style.display='none', 5000);
+}
+</script>
+</body>
+</html>

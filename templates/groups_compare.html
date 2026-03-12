@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>مقارنة المجموعات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📊 مقارنة المجموعات</h1>
+        <p>{{ groups|length }} مجموعة</p>
+      </div>
+    </div>
+
+    {% if groups %}
+
+    {%- set palette = ['#4361ee','#06d6a0','#fb8500','#7209b7','#ef233c'] -%}
+
+    <!-- بطاقات المجموعات -->
+    <div class="groups-grid">
+      {% for g in groups %}
+      {%- set c = palette[loop.index0 % 5] -%}
+      {%- set att_val = (g[3] or 0) | int -%}
+      {%- set hw_val  = (g[4] or 0) | int -%}
+      {%- set ex_val  = (g[5] or 0) | int -%}
+      <div class="card group-card" style="border-top:4px solid {{ c }};">
+        <div class="card-body" style="padding:16px;">
+          <div style="font-weight:800;font-size:1rem;margin-bottom:12px;
+            display:flex;align-items:center;gap:8px;">
+            <span style="width:10px;height:10px;border-radius:50%;
+              background:{{ c }};display:inline-block;"></span>
+            {{ g[0] }}
+          </div>
+          <div class="group-stats">
+            <div class="gstat">
+              <div class="gstat-val" style="color:{{ c }};">{{ g[1] }}</div>
+              <div class="gstat-lbl">طالب</div>
+            </div>
+            <div class="gstat">
+              <div class="gstat-val" style="color:#06d6a0;">{{ att_val }}%</div>
+              <div class="gstat-lbl">حضور</div>
+            </div>
+            <div class="gstat">
+              <div class="gstat-val" style="color:#fb8500;">{{ hw_val }}%</div>
+              <div class="gstat-lbl">واجبات</div>
+            </div>
+            <div class="gstat">
+              <div class="gstat-val" style="color:#7209b7;">{{ ex_val }}%</div>
+              <div class="gstat-lbl">امتحانات</div>
+            </div>
+          </div>
+          <!-- بار الحضور -->
+          <div style="margin-top:10px;">
+            <div style="background:var(--border);border-radius:20px;height:6px;overflow:hidden;">
+              <div style="height:100%;width:{{ att_val }}%;
+                background:{{ c }};border-radius:20px;transition:width 0.8s;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="charts-grid-2">
+      <div class="card">
+        <div class="card-header"><h2>📅 نسبة الحضور بالمجموعة</h2></div>
+        <div class="card-body"><canvas id="attChart" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h2>📝 الواجبات والامتحانات</h2></div>
+        <div class="card-body"><canvas id="perfChart" height="200"></canvas></div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card"><div class="card-body">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <p>لا توجد مجموعات بعد</p>
+        <a href="/groups" class="btn btn-primary" style="margin-top:12px;">إضافة مجموعات</a>
+      </div>
+    </div></div>
+    {% endif %}
+
+  </main>
+</div>
+
+<style>
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.group-card { transition: transform 0.2s; }
+.group-card:hover { transform: translateY(-3px); }
+.group-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.gstat {
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--light);
+  border-radius: 8px;
+}
+.gstat-val { font-weight: 900; font-size: 1rem; }
+.gstat-lbl { font-size: 0.62rem; color: var(--gray); margin-top: 2px; }
+
+.charts-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media(max-width:700px) {
+  .charts-grid-2 { grid-template-columns: 1fr; }
+  .groups-grid   { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<script>
+const labels  = {{ labels   | safe }};
+const attData = {{ att_data | safe }};
+const hwData  = {{ hw_data  | safe }};
+const exData  = {{ ex_data  | safe }};
+const COLORS  = ['#4361ee','#06d6a0','#fb8500','#7209b7','#ef233c'];
+const bgColors = labels.map((_, i) => COLORS[i % COLORS.length]);
+
+if (document.getElementById('attChart')) {
+  new Chart(document.getElementById('attChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'الحضور %',
+        data: attData,
+        backgroundColor: bgColors,
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100,
+        ticks: { callback: v => v + '%' } } }
+    }
+  });
+}
+
+if (document.getElementById('perfChart')) {
+  new Chart(document.getElementById('perfChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'الواجبات %',   data: hwData,
+          backgroundColor: 'rgba(67,97,238,0.75)',   borderRadius: 6 },
+        { label: 'الامتحانات %', data: exData,
+          backgroundColor: 'rgba(114,9,183,0.75)',   borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true, max: 100,
+        ticks: { callback: v => v + '%' } } }
+    }
+  });
+}
+</script>
+</body>
+</html>

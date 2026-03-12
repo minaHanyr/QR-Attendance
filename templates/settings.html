@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الإعدادات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title"><h1>⚙️ الإعدادات</h1></div>
+    </div>
+
+    <form method="POST">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="settings-grid">
+
+      <!-- الوقت -->
+      <div class="card">
+        <div class="card-header"><h2>⏰ توقيت الحصة</h2></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">🕐 وقت بداية الحصة</label>
+            <input type="time" name="session_start" class="form-control" value="{{ s.get('session_start','16:00') }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">⏰ فترة السماح (دقائق)</label>
+            <input type="number" name="late_minutes" class="form-control" value="{{ s.get('late_minutes','15') }}" min="0" max="120">
+            <small style="color:var(--gray);font-size:0.78rem;">حط 999 لو مش عايز تسجيل تأخر</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- الرسوم -->
+      <div class="card">
+        <div class="card-header"><h2>💰 الرسوم والغياب</h2></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">💰 سعر الحصة الافتراضي (ج)</label>
+            <input type="number" name="session_fee" class="form-control" value="{{ s.get('session_fee','85') }}" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📉 حد تنبيه الغياب (مرات)</label>
+            <input type="number" name="absence_alert" class="form-control" value="{{ s.get('absence_alert','3') }}" min="1">
+          </div>
+        </div>
+      </div>
+
+      <!-- الثيم -->
+      <div class="card">
+        <div class="card-header"><h2>🎨 الألوان والثيم</h2></div>
+        <div class="card-body">
+          <p style="font-size:0.82rem;color:var(--gray);margin-bottom:14px;">اختار اللون الأساسي للتطبيق</p>
+
+          <!-- ألوان جاهزة -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+            {% for name, color in [
+              ('أزرق','#4361ee'),('بنفسجي','#7209b7'),('أخضر','#06d6a0'),
+              ('برتقالي','#fb8500'),('وردي','#e91e8c'),('أحمر','#ef233c'),
+              ('رمادي داكن','#1e293b')
+            ] %}
+            <button type="button" onclick="applyPreset('{{ color }}')"
+              class="color-preset" style="background:{{ color }};"
+              title="{{ name }}"></button>
+            {% endfor %}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🎨 اللون الأساسي (Primary)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="color" id="primaryPicker" value="{{ s.get('theme_primary','#4361ee') }}"
+                oninput="document.getElementById('primaryHex').value=this.value;previewTheme()"
+                style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
+              <input type="text" id="primaryHex" name="theme_primary"
+                class="form-control" value="{{ s.get('theme_primary','#4361ee') }}"
+                oninput="document.getElementById('primaryPicker').value=this.value;previewTheme()"
+                style="font-family:monospace;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">✅ لون النجاح (Success)</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="color" id="successPicker" value="{{ s.get('theme_success','#06d6a0') }}"
+                oninput="document.getElementById('successHex').value=this.value;previewTheme()"
+                style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
+              <input type="text" id="successHex" name="theme_success"
+                class="form-control" value="{{ s.get('theme_success','#06d6a0') }}"
+                oninput="document.getElementById('successPicker').value=this.value;previewTheme()"
+                style="font-family:monospace;">
+            </div>
+          </div>
+
+          <!-- معاينة -->
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;" id="themePreview">
+            <span class="badge badge-primary" id="prev-primary">Primary</span>
+            <span class="badge badge-success" id="prev-success">Success</span>
+            <button type="button" class="btn btn-primary btn-sm" id="prev-btn">زرار</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- التقرير -->
+      <div class="card">
+        <div class="card-header"><h2>📧 التقرير الأسبوعي</h2></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">📅 يوم الإرسال</label>
+            <select name="weekly_report_day" class="form-control">
+              {% for i, day in [(0,'السبت'),(1,'الأحد'),(2,'الاثنين'),(3,'الثلاثاء'),(4,'الأربعاء'),(5,'الخميس'),(6,'الجمعة')] %}
+              <option value="{{ i }}" {% if s.get('weekly_report_day','4')==i|string %}selected{% endif %}>{{ day }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <a href="/weekly_report" class="btn btn-outline" style="display:block;text-align:center;margin-top:8px;">
+            📧 فتح التقرير الأسبوعي
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="margin-top:20px;padding:12px 40px;font-size:1rem;">
+      💾 حفظ الإعدادات
+    </button>
+    </form>
+  </main>
+</div>
+
+<style>
+.color-preset {
+  width:32px;height:32px;border-radius:50%;border:3px solid transparent;
+  cursor:pointer;transition:transform 0.15s,border-color 0.15s;
+}
+.color-preset:hover { transform:scale(1.2);border-color:white; }
+@media(max-width:700px){ .settings-grid{grid-template-columns:1fr !important;} }
+</style>
+
+<script>
+function previewTheme() {
+  const p = document.getElementById('primaryHex').value;
+  const s = document.getElementById('successHex').value;
+  document.documentElement.style.setProperty('--primary', p);
+  document.documentElement.style.setProperty('--success', s);
+  document.getElementById('prev-primary').style.background = p + '22';
+  document.getElementById('prev-primary').style.color = p;
+  document.getElementById('prev-success').style.background = s + '22';
+  document.getElementById('prev-success').style.color = s;
+  document.getElementById('prev-btn').style.background = p;
+}
+
+function applyPreset(color) {
+  document.getElementById('primaryHex').value = color;
+  document.getElementById('primaryPicker').value = color;
+  previewTheme();
+}
+
+// تطبيق الألوان المحفوظة عند التحميل
+previewTheme();
+
+// حفظ الثيم في localStorage بعد الـ submit
+document.querySelector('form').addEventListener('submit', () => {
+  localStorage.setItem('theme_primary', document.getElementById('primaryHex').value);
+  localStorage.setItem('theme_success', document.getElementById('successHex').value);
+});
+</script>
+</body>
+</html>

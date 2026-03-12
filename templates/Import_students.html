@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>استيراد طلاب من Excel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📥 استيراد طلاب من Excel</h1>
+        <p>رفع ملف .xlsx أو .xls</p>
+      </div>
+      <a href="/students" class="btn btn-outline">← رجوع</a>
+    </div>
+
+    <!-- نجاح -->
+    {% if success %}
+    <div class="card" style="border-right:4px solid var(--success);margin-bottom:20px;">
+      <div class="card-body" style="padding:24px;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+        <div style="font-size:1.3rem;font-weight:900;color:var(--success);">تم الاستيراد بنجاح!</div>
+        <div style="margin-top:12px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
+          <div class="import-stat" style="color:var(--success);">
+            <span style="font-size:1.8rem;font-weight:900;">{{ added }}</span>
+            <span>طالب أُضيف</span>
+          </div>
+          <div class="import-stat" style="color:var(--gray);">
+            <span style="font-size:1.8rem;font-weight:900;">{{ skipped }}</span>
+            <span>تم تجاهله</span>
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
+          <a href="/students" class="btn btn-primary">👥 عرض الطلاب</a>
+          <a href="/import_students" class="btn btn-outline">📥 استيراد مرة أخرى</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- خطأ -->
+    {% elif error %}
+    <div class="card" style="border-right:4px solid var(--danger);margin-bottom:20px;">
+      <div class="card-body" style="padding:16px 20px;">
+        <div style="font-weight:700;color:var(--danger);">❌ {{ error }}</div>
+        {% if columns %}
+        <div style="margin-top:8px;font-size:0.82rem;color:var(--gray);">
+          الأعمدة الموجودة في الملف:
+          {% for col in columns %}
+          <span class="badge badge-primary" style="margin:2px;">{{ col }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- معاينة البيانات -->
+    {% if rows %}
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <h2>👁️ معاينة البيانات</h2>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="badge badge-success">{{ new_count }} جديد</span>
+          {% if dup_count %}<span class="badge badge-warning">{{ dup_count }} موجود</span>{% endif %}
+          <span style="color:var(--gray);font-size:0.82rem;">إجمالي {{ total }} طالب</span>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الاسم</th>
+              <th>ID</th>
+              <th style="text-align:center;">الحصص/أسبوع</th>
+              <th style="text-align:center;">السعر</th>
+              <th class="hide-mobile">المجموعة</th>
+              <th class="hide-mobile">الواتساب</th>
+              <th style="text-align:center;">الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+            <tr {% if r.exists %}style="opacity:0.55;"{% endif %}>
+              <td style="color:var(--gray);">{{ loop.index }}</td>
+              <td><b>{{ r.name }}</b></td>
+              <td style="font-family:monospace;font-size:0.82rem;">{{ r.id }}</td>
+              <td style="text-align:center;">
+                <span class="badge badge-primary">{{ r.spw }}</span>
+              </td>
+              <td style="text-align:center;">{{ r.fee }} ج</td>
+              <td class="hide-mobile">
+                {% if r.group %}<span class="badge badge-primary" style="font-size:0.72rem;">{{ r.group }}</span>
+                {% else %}<span style="color:var(--gray);">—</span>{% endif %}
+              </td>
+              <td class="hide-mobile" style="font-size:0.78rem;color:var(--gray);">
+                {{ r.phone or '—' }}
+              </td>
+              <td style="text-align:center;">
+                {% if r.exists %}
+                <span class="badge badge-warning">موجود</span>
+                {% else %}
+                <span class="badge badge-success">جديد ✨</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- تأكيد الاستيراد -->
+    <form method="POST" action="/import_students">
+      <input type="hidden" name="confirm" value="1">
+      <input type="hidden" name="preview_json" value="{{ preview_json | e }}">
+      <div class="card">
+        <div class="card-body" style="padding:20px;">
+          <h3 style="margin-bottom:16px;font-size:1rem;">⚙️ خيارات الاستيراد</h3>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;
+            padding:12px;background:var(--light);border-radius:10px;margin-bottom:16px;">
+            <input type="checkbox" name="skip_existing" checked style="width:18px;height:18px;">
+            <div>
+              <div style="font-weight:700;">تجاهل الطلاب الموجودين</div>
+              <div style="font-size:0.78rem;color:var(--gray);">
+                لو مش محدد هيتم تحديث بيانات الطلاب الموجودين
+              </div>
+            </div>
+          </label>
+          <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary" style="padding:12px 32px;font-size:1rem;">
+              💾 تأكيد الاستيراد ({{ new_count }} طالب جديد)
+            </button>
+            <a href="/import_students" class="btn btn-outline">إلغاء</a>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    {% else %}
+
+    <!-- صفحة الرفع -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="import-grid">
+
+      <!-- رفع الملف -->
+      <div class="card">
+        <div class="card-header"><h2>📤 رفع ملف Excel</h2></div>
+        <div class="card-body">
+          <form method="POST" action="/import_students" enctype="multipart/form-data" id="uploadForm">
+            <input type="hidden" name="preview" value="1">
+
+            <!-- منطقة السحب والإفلات -->
+            <div id="dropZone" onclick="document.getElementById('fileInput').click()"
+              style="border:2px dashed var(--border);border-radius:14px;
+                padding:36px 20px;text-align:center;cursor:pointer;
+                transition:all 0.2s;margin-bottom:16px;">
+              <div style="font-size:2.5rem;margin-bottom:8px;">📂</div>
+              <div style="font-weight:700;margin-bottom:4px;">اسحب الملف هنا أو اضغط للاختيار</div>
+              <div style="font-size:0.8rem;color:var(--gray);">.xlsx / .xls</div>
+              <div id="fileName" style="margin-top:10px;font-weight:700;
+                color:var(--primary);display:none;"></div>
+            </div>
+
+            <input type="file" id="fileInput" name="file"
+              accept=".xlsx,.xls" style="display:none"
+              onchange="showFileName(this)">
+
+            <button type="submit" id="uploadBtn" class="btn btn-primary"
+              style="width:100%;padding:12px;font-size:1rem;" disabled>
+              🔍 معاينة البيانات
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- تعليمات -->
+      <div class="card">
+        <div class="card-header"><h2>📋 تعليمات الملف</h2></div>
+        <div class="card-body">
+          <p style="font-size:0.85rem;color:var(--gray);margin-bottom:14px;">
+            الملف لازم يكون فيه هذه الأعمدة — الاسم والـ ID إجباريين والباقي اختياري:
+          </p>
+          <div style="display:grid;gap:8px;">
+            {% for col, req, desc in [
+              ('name / الاسم', True, 'اسم الطالب الكامل'),
+              ('id / student_id / رقم الطالب', True, 'رقم فريد لكل طالب'),
+              ('phone / واتساب', False, 'رقم واتساب ولي الأمر'),
+              ('fee / سعر الحصة', False, 'سعر الحصة (افتراضي 85)'),
+              ('sessions_per_week / حصص اسبوعيا', False, 'عدد الحصص أسبوعياً (افتراضي 1)'),
+              ('group / المجموعة', False, 'اسم المجموعة'),
+              ('notes / ملاحظات', False, 'ملاحظات على الطالب'),
+            ] %}
+            <div style="display:flex;gap:8px;align-items:center;
+              padding:8px 12px;background:var(--light);border-radius:8px;">
+              <code style="font-size:0.75rem;flex:1;color:var(--primary);">{{ col }}</code>
+              {% if req %}
+              <span class="badge badge-danger" style="font-size:0.65rem;">إجباري</span>
+              {% else %}
+              <span class="badge" style="font-size:0.65rem;background:var(--border);color:var(--gray);">اختياري</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- تحميل نموذج -->
+          <a href="/download_template" class="btn btn-outline"
+            style="display:block;text-align:center;margin-top:16px;">
+            📥 تحميل نموذج Excel فاضي
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+
+<style>
+.import-stat { display:flex;flex-direction:column;align-items:center;gap:4px;font-size:0.85rem; }
+#dropZone:hover, #dropZone.drag-over {
+  border-color: var(--primary);
+  background: rgba(67,97,238,0.05);
+}
+@media(max-width:700px){ .import-grid{ grid-template-columns:1fr !important; } }
+</style>
+
+<script>
+function showFileName(input) {
+  if (input.files[0]) {
+    document.getElementById('fileName').textContent = '✅ ' + input.files[0].name;
+    document.getElementById('fileName').style.display = 'block';
+    document.getElementById('uploadBtn').disabled = false;
+    document.getElementById('dropZone').style.borderColor = 'var(--success)';
+  }
+}
+
+// Drag & drop
+const dz = document.getElementById('dropZone');
+if (dz) {
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('fileInput').files = dt.files;
+      showFileName(document.getElementById('fileInput'));
+    }
+  });
+}
+</script>
+</body>
+</html>

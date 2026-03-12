@@ -1,0 +1,391 @@
+<!-- ══ SIDEBAR ══════════════════════════════════════════ -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">📚</div>
+    <span>نظام الحضور</span>
+  </div>
+
+  <!-- بحث سريع -->
+  <div style="padding:10px 12px 4px;">
+    <div style="position:relative;">
+      <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+        color:rgba(255,255,255,0.4);font-size:0.85rem;">🔍</span>
+      <input id="sidebarSearch" type="text" placeholder="بحث سريع..."
+        autocomplete="off"
+        style="width:100%;padding:8px 34px 8px 10px;border-radius:10px;
+          border:1px solid rgba(255,255,255,0.1);
+          background:rgba(255,255,255,0.07);color:white;
+          font-family:'Cairo',sans-serif;font-size:0.82rem;"
+        oninput="quickSearch(this.value)">
+    </div>
+    <div id="searchResults" style="display:none;margin-top:6px;
+      background:rgba(0,0,0,0.4);border-radius:10px;overflow:hidden;
+      max-height:240px;overflow-y:auto;"></div>
+  </div>
+
+  <!-- ── قسم: الرئيسية ── -->
+  <div class="nav-section collapsible" onclick="toggleSection(this)">
+    <span>الرئيسية</span><span class="section-arrow">▾</span>
+  </div>
+  <div class="nav-group">
+    <a href="/dashboard" class="nav-link"><span class="nav-icon">🏠</span> الرئيسية</a>
+    <a href="/scan"      class="nav-link"><span class="nav-icon">📷</span> تسجيل الحضور</a>
+  </div>
+
+  <!-- ── قسم: الطلاب ── -->
+  <div class="nav-section collapsible" onclick="toggleSection(this)">
+    <span>الطلاب</span><span class="section-arrow">▾</span>
+  </div>
+  <div class="nav-group">
+    <a href="/students"       class="nav-link"><span class="nav-icon">👥</span> الطلاب</a>
+    <a href="/groups"         class="nav-link"><span class="nav-icon">🗂️</span> المجموعات</a>
+    <a href="/add_student"    class="nav-link"><span class="nav-icon">➕</span> إضافة طالب</a>
+    <a href="/import_students" class="nav-link"><span class="nav-icon">📥</span> استيراد من Excel</a>
+    <a href="/ranking"        class="nav-link"><span class="nav-icon">🏆</span> الترتيب</a>
+  </div>
+
+  <!-- ── قسم: التقارير ── -->
+  <div class="nav-section collapsible" onclick="toggleSection(this)">
+    <span>التقارير</span><span class="section-arrow">▾</span>
+  </div>
+  <div class="nav-group">
+    <a href="/report"          class="nav-link"><span class="nav-icon">📋</span> سجل الحضور</a>
+    <a href="/fees"            class="nav-link"><span class="nav-icon">💰</span> المصاريف</a>
+    <a href="/monthly_finance" class="nav-link"><span class="nav-icon">💳</span> التقرير المالي</a>
+    <a href="/absent_today"    class="nav-link"><span class="nav-icon">⚠️</span> غائبو اليوم</a>
+    <a href="/groups_compare"  class="nav-link"><span class="nav-icon">📊</span> مقارنة المجموعات</a>
+    <a href="/weekly_report"   class="nav-link"><span class="nav-icon">📧</span> التقرير الأسبوعي</a>
+    <a href="/schedule"        class="nav-link"><span class="nav-icon">🗓️</span> الجدول</a>
+    <a href="/holidays"        class="nav-link"><span class="nav-icon">🌴</span> الإجازات</a>
+    <a href="/print_qr"        class="nav-link"><span class="nav-icon">🖨️</span> طباعة QR</a>
+  </div>
+
+  <!-- ── قسم: النظام ── -->
+  <div class="nav-section collapsible" onclick="toggleSection(this)">
+    <span>النظام</span><span class="section-arrow">▾</span>
+  </div>
+  <div class="nav-group">
+    <a href="/notifications" class="nav-link" id="notifNavLink">
+      <span class="nav-icon">🔔</span> الإشعارات
+      <span id="notifBadgeSide" style="display:none;margin-right:auto;
+        background:var(--danger);color:white;border-radius:20px;
+        font-size:0.65rem;padding:1px 7px;font-weight:700;"></span>
+    </a>
+    <a href="/settings" class="nav-link"><span class="nav-icon">⚙️</span> الإعدادات</a>
+    <a href="/logout"   class="nav-link"><span class="nav-icon">🚪</span> تسجيل الخروج</a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="dark-toggle" onclick="toggleDark()" style="margin-bottom:8px;">
+      <span>🌙 الوضع الليلي</span>
+      <div class="toggle-switch" id="toggleSw"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="dark-toggle" onclick="toggleLang()" id="langToggle">
+      <span id="langLabel">🌐 English</span>
+      <div class="toggle-switch" id="langSw"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ══ MOBILE BOTTOM NAV ══════════════════════════════ -->
+<nav class="bottom-nav">
+  <a href="/dashboard" class="bottom-nav-item">
+    <span>🏠</span><span class="bottom-nav-label">الرئيسية</span>
+  </a>
+  <a href="/scan" class="bottom-nav-item ">
+    <span style="font-size:1.4rem;">📷</span><span class="bottom-nav-label">الحضور</span>
+  </a>
+  <a href="/students" class="bottom-nav-item">
+    <span>👥</span><span class="bottom-nav-label">الطلاب</span>
+  </a>
+  <a href="/fees" class="bottom-nav-item">
+    <span>💰</span><span class="bottom-nav-label">الفلوس</span>
+  </a>
+  <button class="bottom-nav-item" onclick="openSidebar()"
+    style="background:none;border:none;cursor:pointer;">
+    <span>☰</span><span class="bottom-nav-label">القائمة</span>
+  </button>
+</nav>
+
+<!-- ══ SPLASH SCREEN ══════════════════════════════════ -->
+<div id="splashScreen" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,var(--primary,#4361ee) 0%,#818cf8 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity 0.5s,transform 0.5s;
+  pointer-events:none;opacity:0;">
+  <div style="font-size:4rem;margin-bottom:16px;animation:splashBounce 0.6s ease-out;">📚</div>
+  <div style="color:white;font-size:1.6rem;font-weight:900;margin-bottom:8px;">نظام الحضور</div>
+  <div style="color:rgba(255,255,255,0.7);font-size:0.9rem;">جاري التحميل...</div>
+  <div style="margin-top:28px;width:120px;height:4px;background:rgba(255,255,255,0.2);
+    border-radius:4px;overflow:hidden;">
+    <div id="splashBar" style="height:100%;width:0%;background:white;
+      border-radius:4px;transition:width 0.6s ease-out;"></div>
+  </div>
+</div>
+
+<!-- ══ NOTIFICATION POPUP ════════════════════════════ -->
+<div id="notifPopup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;
+  z-index:998;" onclick="if(event.target===this)closeNotifPopup()">
+  <div id="notifPanel" style="position:absolute;top:0;left:0;width:320px;height:100vh;
+    background:var(--card-bg);box-shadow:-4px 0 24px rgba(0,0,0,0.2);
+    display:flex;flex-direction:column;transform:translateX(-100%);
+    transition:transform 0.3s;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;">
+      <b style="font-size:1rem;">🔔 الإشعارات</b>
+      <div style="display:flex;gap:8px;">
+        <button onclick="readAllNotifs()" class="btn btn-outline btn-sm">✓ قراءة الكل</button>
+        <button onclick="closeNotifPopup()" class="btn btn-outline btn-sm">✕</button>
+      </div>
+    </div>
+    <div id="notifList" style="flex:1;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ══ BACK TO TOP ════════════════════════════════════ -->
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+  style="display:none;position:fixed;bottom:88px;left:20px;z-index:200;
+    width:42px;height:42px;border-radius:12px;border:none;cursor:pointer;
+    background:var(--primary);color:white;font-size:1.1rem;
+    box-shadow:0 4px 14px rgba(67,97,238,0.4);
+    transition:all 0.2s;align-items:center;justify-content:center;">
+  ↑
+</button>
+
+<style>
+/* ── Bottom Nav ── */
+.bottom-nav {
+  display:none;position:fixed;bottom:0;left:0;right:0;height:64px;
+  background:var(--card-bg);border-top:1px solid var(--border);z-index:150;
+  flex-direction:row;align-items:center;justify-content:space-around;
+  padding-bottom:env(safe-area-inset-bottom,0);
+  box-shadow:0 -4px 16px rgba(0,0,0,0.08);
+}
+.bottom-nav-item {
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:1.2rem;color:var(--gray);text-decoration:none;
+  padding:8px 12px;border-radius:12px;transition:all 0.15s;
+}
+.bottom-nav-item:hover,.bottom-nav-item.active { color:var(--primary); }
+.bottom-nav-label { font-size:0.65rem;font-weight:700;font-family:'Cairo',sans-serif; }
+.scan-btn {
+  color:white !important;
+  width:52px;height:52px;border-radius:16px;
+}
+
+/* ── Search Results ── */
+#searchResults .sr-item {
+  padding:8px 12px;color:rgba(255,255,255,0.85);font-size:0.82rem;
+  cursor:pointer;transition:background 0.1s;display:flex;align-items:center;
+  gap:8px;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.05);
+}
+#searchResults .sr-item:hover { background:rgba(255,255,255,0.08); }
+
+/* ── Splash ── */
+@keyframes splashBounce {
+  0%   { transform:scale(0) rotate(-20deg); }
+  60%  { transform:scale(1.2) rotate(5deg); }
+  100% { transform:scale(1) rotate(0); }
+}
+
+/* ── Back to top ── */
+#backToTop:hover { transform:translateY(-3px); background:var(--primary-dark,#3451d1); }
+
+/* ── Notif Panel ── */
+.notif-panel-open { transform:translateX(0) !important; }
+.notif-item {
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background 0.1s;
+}
+.notif-item:hover { background:var(--light); }
+.notif-item.unread { border-right:3px solid var(--primary); }
+
+@media(max-width:768px) {
+  .bottom-nav { display:flex; }
+  .main-content { padding-bottom:80px !important; }
+  #backToTop { bottom:80px; }
+}
+</style>
+
+<script>
+// ── Theme Colors ──────────────────────────────────────
+(function() {
+  const p = localStorage.getItem('theme_primary');
+  const s = localStorage.getItem('theme_success');
+  if (p) document.documentElement.style.setProperty('--primary', p);
+  if (s) document.documentElement.style.setProperty('--success', s);
+})();
+
+// ── Splash Screen ─────────────────────────────────────
+(function() {
+  const key = 'splashShown_' + window.location.pathname;
+  const splash = document.getElementById('splashScreen');
+  const bar    = document.getElementById('splashBar');
+  if (!splash) return;
+
+  // أظهر فقط أول مرة في الجلسة
+  if (!sessionStorage.getItem(key)) {
+    splash.style.opacity = '1';
+    splash.style.pointerEvents = 'all';
+    sessionStorage.setItem(key, '1');
+
+    // شريط التحميل
+    setTimeout(() => { bar.style.width = '70%'; }, 50);
+    setTimeout(() => { bar.style.width = '100%'; }, 400);
+    setTimeout(() => {
+      splash.style.opacity = '0';
+      splash.style.transform = 'scale(1.04)';
+      setTimeout(() => splash.style.display = 'none', 500);
+    }, 900);
+  }
+})();
+
+// ── Dark Mode ─────────────────────────────────────────
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : '');
+  const sw = document.getElementById('toggleSw');
+  if (sw) sw.classList.toggle('on', dark);
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+}
+function toggleDark() {
+  applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+}
+(function() {
+  if (localStorage.getItem('theme') === 'dark') applyTheme(true);
+})();
+
+// ── Language ──────────────────────────────────────────
+function applyLang(lang) {
+  document.documentElement.setAttribute('dir', lang === 'en' ? 'ltr' : 'rtl');
+  document.documentElement.setAttribute('lang', lang);
+  const sw  = document.getElementById('langSw');
+  const lbl = document.getElementById('langLabel');
+  if (sw)  sw.classList.toggle('on', lang === 'en');
+  if (lbl) lbl.textContent = lang === 'en' ? '🌐 العربية' : '🌐 English';
+  localStorage.setItem('lang', lang);
+}
+function toggleLang() {
+  applyLang((localStorage.getItem('lang') || 'ar') === 'ar' ? 'en' : 'ar');
+}
+(function() {
+  const saved = localStorage.getItem('lang');
+  if (saved === 'en') applyLang('en');
+})();
+
+
+
+// استعادة حالة الأقسام
+document.querySelectorAll('.nav-section.collapsible').forEach(header => {
+  const key   = 'sidebarSection_' + header.querySelector('span').textContent.trim();
+  const group = header.nextElementSibling;
+  const arrow = header.querySelector('.section-arrow');
+  const saved = localStorage.getItem(key);
+  // افتراضي: كل الأقسام مفتوحة
+  if (saved === '0') {
+    group.classList.add('collapsed');
+    arrow.classList.add('collapsed');
+  }
+});
+
+// ── Mobile Sidebar ────────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// ── Active Link ───────────────────────────────────────
+document.querySelectorAll('.nav-link, .bottom-nav-item').forEach(link => {
+  if (link.href && window.location.pathname === new URL(link.href, location.origin).pathname)
+    link.classList.add('active');
+});
+
+// ── Quick Search ──────────────────────────────────────
+let searchTimer;
+async function quickSearch(q) {
+  clearTimeout(searchTimer);
+  const box = document.getElementById('searchResults');
+  if (!q.trim()) { box.style.display = 'none'; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/search?q=' + encodeURIComponent(q));
+      const d = await r.json();
+      if (!d.students.length && !d.attendance.length) {
+        box.style.display = 'none'; return;
+      }
+      box.style.display = 'block';
+      box.innerHTML =
+        d.students.map(s => `
+          <a href="/student_history/${s.id}" class="sr-item">
+            <span>👤</span>
+            <span><b>${s.name}</b><br><small style="opacity:0.6">${s.id}</small></span>
+          </a>`).join('');
+    } catch(e) {}
+  }, 300);
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#sidebarSearch') && !e.target.closest('#searchResults'))
+    document.getElementById('searchResults').style.display = 'none';
+});
+
+// ── Notifications ─────────────────────────────────────
+async function loadNotifCount() {
+  try {
+    const r = await fetch('/notifications_data');
+    const d = await r.json();
+    const badge = document.getElementById('notifBadgeSide');
+    if (badge) {
+      badge.textContent = d.unread;
+      badge.style.display = d.unread > 0 ? '' : 'none';
+    }
+  } catch(e) {}
+}
+loadNotifCount();
+setInterval(loadNotifCount, 30000);
+
+async function openNotifPopup() {
+  const popup = document.getElementById('notifPopup');
+  const panel = document.getElementById('notifPanel');
+  popup.style.display = 'block';
+  setTimeout(() => panel.classList.add('notif-panel-open'), 10);
+  const r = await fetch('/notifications_data');
+  const d = await r.json();
+  document.getElementById('notifList').innerHTML = d.items.length
+    ? d.items.map(n => `
+        <div class="notif-item" onclick="window.location='${n.link||'/notifications'}'">
+          <span style="font-size:1.3rem;">${n.type==='attendance'?'✅':'🔔'}</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.88rem;">${n.title}</div>
+            <div style="font-size:0.78rem;color:var(--gray);">${n.body}</div>
+            <div style="font-size:0.7rem;color:var(--gray);margin-top:2px;">${n.time}</div>
+          </div>
+        </div>`).join('')
+    : '<div class="empty-state" style="padding:40px 20px;"><div style="font-size:2.5rem;">🔔</div><p>لا توجد إشعارات</p></div>';
+}
+function closeNotifPopup() {
+  document.getElementById('notifPanel').classList.remove('notif-panel-open');
+  setTimeout(() => document.getElementById('notifPopup').style.display='none', 300);
+}
+async function readAllNotifs() {
+  await fetch('/notifications/read_all', {method:'POST'});
+  loadNotifCount(); closeNotifPopup();
+}
+
+// ── Back to Top ───────────────────────────────────────
+const btt = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+  if (btt) {
+    btt.style.display = window.scrollY > 300 ? 'flex' : 'none';
+  }
+}, { passive: true });
+
+// PWA
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+</script>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ترتيب الطلاب | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>🏆 ترتيب الطلاب</h1>
+        <p>مرتبين حسب الأداء الكلي (حضور 20% + واجبات 30% + امتحانات 50%)</p>
+      </div>
+    </div>
+
+    <!-- Top 3 Podium -->
+    {% if ranking|length >= 3 %}
+    <div style="display:flex; justify-content:center; align-items:flex-end; gap:16px; margin-bottom:32px; flex-wrap:wrap;">
+
+      <!-- 2nd place -->
+      <div style="text-align:center;">
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,#c0c0c0,#e8e8e8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:#666;margin:0 auto 8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+          {{ ranking[1].name[0] }}
+        </div>
+        <div style="font-weight:700;font-size:0.9rem;">{{ ranking[1].name }}</div>
+        <div style="font-size:0.8rem;color:var(--gray);">{{ ranking[1].overall }}%</div>
+        <div style="background:#c0c0c0;color:white;padding:20px 24px 12px;border-radius:8px 8px 0 0;margin-top:8px;font-size:1.5rem;">🥈</div>
+      </div>
+
+      <!-- 1st place -->
+      <div style="text-align:center;">
+        <div style="width:96px;height:96px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:900;color:white;margin:0 auto 8px;box-shadow:0 6px 20px rgba(255,165,0,0.4);">
+          {{ ranking[0].name[0] }}
+        </div>
+        <div style="font-weight:800;font-size:1rem;">{{ ranking[0].name }}</div>
+        <div style="font-size:0.85rem;color:var(--warning);font-weight:700;">{{ ranking[0].overall }}%</div>
+        <div style="background:linear-gradient(135deg,#FFD700,#FFA500);color:white;padding:28px 28px 12px;border-radius:8px 8px 0 0;margin-top:8px;font-size:1.8rem;box-shadow:0 4px 16px rgba(255,165,0,0.3);">🥇</div>
+      </div>
+
+      <!-- 3rd place -->
+      <div style="text-align:center;">
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,#CD7F32,#e8a96b);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:white;margin:0 auto 8px;box-shadow:0 4px 16px rgba(205,127,50,0.3);">
+          {{ ranking[2].name[0] }}
+        </div>
+        <div style="font-weight:700;font-size:0.9rem;">{{ ranking[2].name }}</div>
+        <div style="font-size:0.8rem;color:var(--gray);">{{ ranking[2].overall }}%</div>
+        <div style="background:#CD7F32;color:white;padding:16px 24px 12px;border-radius:8px 8px 0 0;margin-top:8px;font-size:1.5rem;">🥉</div>
+      </div>
+
+    </div>
+    {% endif %}
+
+    <!-- Full Table -->
+    <div class="card">
+      <div class="card-header"><h2>📊 الترتيب الكامل</h2></div>
+      <div class="table-wrapper">
+        {% if ranking %}
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الطالب</th>
+              <th>الحضور</th>
+              <th>متوسط الواجبات</th>
+              <th>متوسط الامتحانات</th>
+              <th>الأداء الكلي</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in ranking %}
+            <tr>
+              <td>
+                <span style="font-weight:800;font-size:1.1rem;color:
+                  {% if loop.index == 1 %}#FFD700
+                  {% elif loop.index == 2 %}#c0c0c0
+                  {% elif loop.index == 3 %}#CD7F32
+                  {% else %}var(--gray){% endif %};">
+                  {% if loop.index == 1 %}🥇
+                  {% elif loop.index == 2 %}🥈
+                  {% elif loop.index == 3 %}🥉
+                  {% else %}{{ loop.index }}{% endif %}
+                </span>
+              </td>
+              <td>
+                <div class="student-row-card">
+                  <div class="student-avatar">{{ s.name[0] }}</div>
+                  <div class="student-info-mini">
+                    <h4>{{ s.name }}</h4>
+                    <p>{{ s.student_id }}</p>
+                  </div>
+                </div>
+              </td>
+              <td><span class="badge badge-primary">{{ s.attendance }} يوم</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="progress" style="width:80px;">
+                    <div class="progress-bar" style="width:{{ s.hw_avg }}%;background:{% if s.hw_avg>=80 %}var(--success){% elif s.hw_avg>=50 %}var(--warning){% else %}var(--danger){% endif %};"></div>
+                  </div>
+                  <span style="font-size:0.8rem;font-weight:700;">{{ s.hw_avg }}%</span>
+                </div>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="progress" style="width:80px;">
+                    <div class="progress-bar" style="width:{{ s.ex_avg }}%;"></div>
+                  </div>
+                  <span style="font-size:0.8rem;font-weight:700;">{{ s.ex_avg }}%</span>
+                </div>
+              </td>
+              <td>
+                <span style="font-size:1.1rem;font-weight:900;color:
+                  {% if s.overall>=80 %}var(--success)
+                  {% elif s.overall>=60 %}var(--warning)
+                  {% else %}var(--danger){% endif %};">
+                  {{ s.overall }}%
+                </span>
+              </td>
+              <td>
+                <a href="{{ url_for('performance', student_id=s.student_id) }}" class="btn btn-outline btn-sm">📊</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><div class="empty-icon">🏆</div><p>لا يوجد طلاب بعد</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

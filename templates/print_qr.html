@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طباعة QR Codes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    @media print {
+      .sidebar, .topbar, .no-print { display: none !important; }
+      .main-content { margin: 0 !important; padding: 0 !important; }
+      .qr-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 0 !important; }
+      .qr-print-card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      body { background: white !important; }
+    }
+
+    .qr-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .qr-print-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(67,97,238,0.1);
+      border: 1px solid #e9ecef;
+      transition: all 0.2s;
+    }
+
+    .qr-print-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(67,97,238,0.15);
+    }
+
+    .qr-print-card .school-header {
+      font-size: 0.65rem;
+      color: #999;
+      margin-bottom: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .qr-print-card img {
+      width: 140px;
+      height: 140px;
+      border: 3px solid #f0f2f8;
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .qr-print-card .student-name {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #14213d;
+      margin: 10px 0 4px;
+    }
+
+    .qr-print-card .student-code {
+      display: inline-block;
+      background: #f0f2f8;
+      color: #4361ee;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+
+    .qr-print-card .cut-line {
+      border-top: 1.5px dashed #ddd;
+      margin-top: 12px;
+      padding-top: 6px;
+      font-size: 0.65rem;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar no-print">
+      <div class="topbar-title">
+        <h1>🖨️ طباعة QR Codes</h1>
+        <p>{{ students|length }} طالب — اطبع وقص كارت لكل طالب</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ طباعة الكل</button>
+        <a href="{{ url_for('students') }}" class="btn btn-outline">← رجوع</a>
+      </div>
+    </div>
+
+    {% if not students %}
+    <div class="card">
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-icon">🖨️</div>
+          <p>لا يوجد طلاب بعد — أضف طلاب أولاً</p>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="qr-grid">
+      {% for student in students %}
+      <div class="qr-print-card">
+        <div class="school-header">🎓 نظام الحضور الإلكتروني</div>
+        <img src="{{ url_for('static', filename='qr_codes/' + student[2] + '.png') }}"
+             alt="QR {{ student[1] }}"
+             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22140%22 height=%22140%22><rect width=%22140%22 height=%22140%22 fill=%22%23f0f2f8%22/><text x=%2270%22 y=%2275%22 text-anchor=%22middle%22 font-size=%2212%22 fill=%22%23999%22>لا يوجد QR</text></svg>'">
+        <div class="student-name">{{ student[1] }}</div>
+        <div class="student-code">{{ student[2] }}</div>
+        {% if student[3] %}
+        <div style="font-size:0.72rem;color:#aaa;">📞 {{ student[3] }}</div>
+        {% endif %}
+        <div class="cut-line">✂ قص من هنا</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>جدول الحصص | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* أنماط عامة */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #777;
+    }
+    .modal-body {
+      margin-bottom: 16px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-family: 'Cairo', sans-serif;
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-primary {
+      background: #4361EE;
+      color: white;
+    }
+    .btn-outline {
+      background: transparent;
+      color: #4361EE;
+      border: 1px solid #4361EE;
+    }
+
+    /* أنماط جدول الحصص */
+    .day-col { min-width: 130px; }
+    .session-pill {
+      background: linear-gradient(135deg, rgba(67,97,238,0.1), rgba(72,149,239,0.1));
+      border: 1px solid rgba(67,97,238,0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      position: relative;
+    }
+    .session-pill:hover { border-color: var(--primary); }
+    .session-subject { font-weight:700; font-size:0.88rem; color:var(--dark); }
+    .session-time { font-size:0.72rem; color:var(--gray); margin-top:2px; }
+    .session-del {
+      position:absolute; top:6px; left:8px;
+      background:none; border:none; color:#ccc; cursor:pointer;
+      font-size:0.8rem; padding:2px 4px; border-radius:4px;
+    }
+    .session-del:hover { background:rgba(239,35,60,0.1); color:var(--danger); }
+    .day-header {
+      font-size:0.78rem; font-weight:700; color:var(--primary);
+      text-align:center; padding:10px 0 8px;
+      border-bottom:2px solid rgba(67,97,238,0.15);
+      margin-bottom:10px;
+    }
+    .today-col .day-header {
+      color:white;
+      background:linear-gradient(135deg,var(--primary),var(--primary-light));
+      border-radius:8px;
+      padding:10px;
+      margin:-8px -8px 10px;
+    }
+    .today-col { background:rgba(67,97,238,0.04); border-radius:8px; padding:8px; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>🗓️ جدول الحصص الأسبوعي</h1>
+        <p>نظّم مواعيد حصصك للأسبوع</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddModal()">
+        ➕ إضافة حصة
+      </button>
+    </div>
+
+    <!-- Weekly Grid -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body" style="overflow-x:auto;">
+        <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:12px; min-width:700px;">
+          {% set today_ar = ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'][now.weekday()] if now else '' %}
+          {% for day in days %}
+          <div class="day-col {% if day == today_ar %}today-col{% endif %}">
+            <div class="day-header">{{ day }}</div>
+            {% if schedule[day] %}
+              {% for s in schedule[day] %}
+              <div class="session-pill">
+                <form method="POST" style="display:inline;" onsubmit="return confirm('حذف الحصة؟')">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="id" value="{{ s[0] }}">
+                  <button type="submit" class="session-del">✕</button>
+                </form>
+                <div class="session-subject">{{ s[4] }}</div>
+                <div class="session-time">🕐 {{ s[2] }} – {{ s[3] }}</div>
+                {% if s[5] %}<div style="font-size:0.7rem;color:var(--gray);margin-top:3px;">📝 {{ s[5] }}</div>{% endif %}
+              </div>
+              {% endfor %}
+            {% else %}
+              <div style="text-align:center;color:var(--border);font-size:1.5rem;padding:20px 0;">—</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Session Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>➕ إضافة حصة جديدة</h3>
+      <button type="button" class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('schedule') }}">
+      <input type="hidden" name="action" value="add">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>اليوم</label>
+            <select name="day" class="form-control" required>
+              {% for d in days %}
+              <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>المادة / الموضوع</label>
+            <input type="text" name="subject" class="form-control" placeholder="مثال: رياضيات" required>
+          </div>
+          <div class="form-group">
+            <label>من الساعة</label>
+            <input type="time" name="time_from" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>إلى الساعة</label>
+            <input type="time" name="time_to" class="form-control" required>
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>ملاحظات (اختياري)</label>
+            <input type="text" name="notes" class="form-control" placeholder="مثال: أونلاين / أوفلاين">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeAddModal()">إلغاء</button>
+        <button type="submit" class="btn btn-primary">✅ إضافة</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openAddModal() {
+    document.getElementById('addModal').classList.add('open');
+  }
+
+  function closeAddModal() {
+    document.getElementById('addModal').classList.remove('open');
+  }
+</script>
+</body>
+</html>

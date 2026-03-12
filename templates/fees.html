@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المصاريف | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>💰 المصاريف</h1>
+        <p style="color:var(--gray);">كل scan بيسجل دفع أوتوماتيك حسب رسوم كل طالب</p>
+      </div>
+    </div>
+
+    <!-- إحصائيات -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+      <div class="card">
+        <div class="card-body" style="text-align:center;">
+          <div style="font-size:2rem;font-weight:900;color:var(--primary);">{{ total_sessions }}</div>
+          <div style="color:var(--gray);font-size:0.85rem;margin-top:4px;">إجمالي الحصص</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="text-align:center;">
+          <div style="font-size:2rem;font-weight:900;color:var(--success);">{{ total_paid|int }} ج</div>
+          <div style="color:var(--gray);font-size:0.85rem;margin-top:4px;">إجمالي المحصّل</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="text-align:center;">
+          <div style="font-size:2rem;font-weight:900;color:var(--primary);">{{ students_fees|length }}</div>
+          <div style="color:var(--gray);font-size:0.85rem;margin-top:4px;">عدد الطلاب</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- جدول الطلاب -->
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-header">
+        <h2>👥 حالة كل طالب</h2>
+        <button class="btn btn-primary btn-sm" onclick="showModal('manualModal')">➕ دفع يدوي</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>الطالب</th>
+              <th style="text-align:center;">رسوم الحصة</th>
+              <th style="text-align:center;">عدد الحصص</th>
+              <th style="text-align:center;">إجمالي الدفع</th>
+              <th style="text-align:center;">تعديل السعر</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students_fees %}
+            <tr>
+              <td>
+                <b>{{ s.name }}</b>
+                <br><small style="color:var(--gray);">{{ s.student_id }}</small>
+              </td>
+              <td style="text-align:center;">
+                <span style="font-weight:700;color:var(--primary);">{{ s.session_fee|int }} ج</span>
+                <br><small style="color:var(--gray);">/ حصة</small>
+              </td>
+              <td style="text-align:center;font-weight:700;">{{ s.sessions }}</td>
+              <td style="text-align:center;font-weight:700;color:var(--success);">{{ s.paid|int }} ج</td>
+              <td style="text-align:center;">
+                <a href="/edit_student/{{ s.id }}" class="btn btn-outline btn-sm">✏️ تعديل</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- سجل الدفعات -->
+    <div class="card">
+      <div class="card-header"><h2>📋 سجل الدفعات</h2></div>
+      <div class="card-body" style="padding:0;">
+        {% if payments %}
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الطالب</th>
+              <th style="text-align:center;">المبلغ</th>
+              <th>البيان</th>
+              <th>التاريخ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in payments %}
+            <tr>
+              <td style="color:var(--gray);">{{ loop.index }}</td>
+              <td><b>{{ p[1] }}</b></td>
+              <td style="text-align:center;color:var(--success);font-weight:700;">{{ p[3]|int }} ج</td>
+              <td>{{ p[4] or '—' }}</td>
+              <td style="color:var(--gray);font-size:0.85rem;">{{ p[5] }}</td>
+              <td>
+                <form method="POST" style="display:inline;"
+                  onsubmit="return confirm('حذف هذه الدفعة؟')">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="id" value="{{ p[0] }}">
+                  <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">💳</div>
+          <p>لا توجد دفعات بعد — ابدأ بمسح QR الطلاب</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal: دفع يدوي -->
+<div id="manualModal" class="modal-overlay"
+  onclick="if(event.target===this) hideModal('manualModal')">
+  <div class="card" style="width:400px;max-width:95vw;">
+    <div class="card-header">
+      <h2>➕ دفع يدوي</h2>
+      <button onclick="hideModal('manualModal')" class="btn btn-outline btn-sm">✕</button>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="manual_pay">
+        <div class="form-group">
+          <label class="form-label">الطالب</label>
+          <select name="student_id" class="form-control" required>
+            <option value="">اختر طالب...</option>
+            {% for s in students_fees %}
+            <option value="{{ s.student_id }}">{{ s.name }} ({{ s.session_fee|int }} ج/حصة)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المبلغ (جنيه)</label>
+          <input type="number" name="amount" class="form-control" min="1" step="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">البيان (اختياري)</label>
+          <input type="text" name="description" class="form-control" placeholder="مثال: دفع يدوي">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button type="submit" class="btn btn-success">✅ تأكيد</button>
+          <button type="button" class="btn btn-outline"
+            onclick="hideModal('manualModal')">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+</style>
+
+<script>
+function showModal(id) { document.getElementById(id).classList.add('open'); }
+function hideModal(id) { document.getElementById(id).classList.remove('open'); }
+</script>
+
+</body>
+</html>

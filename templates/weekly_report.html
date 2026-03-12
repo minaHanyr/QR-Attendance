@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقرير الأسبوعي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .report-table th, .report-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        .report-table th {
+            background-color: #f8f9fa;
+        }
+        .report-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .btn {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+        }
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        {% include 'sidebar.html' %}
+        <main class="main-content">
+            <div class="topbar">
+                <div class="topbar-title">
+                    <h1>📊 التقرير الأسبوعي</h1>
+                    <p>سجل حضور الطلاب خلال الأسبوع الماضي</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 سجل حضور الطلاب</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <button type="submit" class="btn">إرسال التنبيهات عبر واتساب</button>
+                    </form>
+                    {% if students %}
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>اسم الطالب</th>
+                                <th>رمز الطالب</th>
+                                <th>عدد أيام الحضور</th>
+                                <th>عدد مرات التأخير</th>
+                                <th>عدد أيام الغياب</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.student_id }}</td>
+                                <td>{{ student.sessions }}</td>
+                                <td>{{ student.late }}</td>
+                                <td>{{ student.absent }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">😊</div>
+                        <p>لا يوجد بيانات لعرضها</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetch('/weekly_report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

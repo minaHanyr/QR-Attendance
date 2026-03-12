@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تقرير {{ student[1] }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Cairo',sans-serif; color:#1e293b; background:#fff; direction:rtl; }
+    .page { max-width:800px; margin:0 auto; padding:32px; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start;
+      padding-bottom:20px; border-bottom:3px solid #4361ee; margin-bottom:24px; }
+    .school-name { font-size:1.4rem; font-weight:900; color:#4361ee; }
+    .report-title { font-size:0.85rem; color:#6b7280; margin-top:4px; }
+    .student-avatar { width:60px; height:60px; background:linear-gradient(135deg,#4361ee,#818cf8);
+      border-radius:16px; display:flex; align-items:center; justify-content:center;
+      color:white; font-size:1.8rem; font-weight:900; }
+    .student-info { margin-bottom:24px; padding:16px; background:#f8fafc; border-radius:12px; }
+    .info-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; }
+    .info-item { text-align:center; padding:12px; background:white; border-radius:10px; border:1px solid #e5e7eb; }
+    .info-val { font-size:1.4rem; font-weight:900; color:#4361ee; }
+    .info-lbl { font-size:0.72rem; color:#6b7280; margin-top:2px; }
+    .section { margin-bottom:20px; }
+    .section-title { font-size:1rem; font-weight:800; color:#1e293b;
+      padding:8px 0; border-bottom:2px solid #e5e7eb; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    th, td { padding:8px 12px; text-align:right; border-bottom:1px solid #e5e7eb; }
+    th { background:#f8fafc; font-weight:700; font-size:0.75rem; color:#6b7280; }
+    .badge { padding:2px 8px; border-radius:20px; font-size:0.72rem; font-weight:700; }
+    .badge-present { background:#dcfce7; color:#16a34a; }
+    .badge-late { background:#fef3c7; color:#d97706; }
+    .progress-bar { background:#e5e7eb; border-radius:20px; height:10px; overflow:hidden; }
+    .progress-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#4361ee,#818cf8); }
+    .footer { margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb;
+      display:flex; justify-content:space-between; font-size:0.75rem; color:#6b7280; }
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .no-print { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="no-print" style="padding:12px;background:#4361ee;text-align:center;">
+  <button onclick="window.print()" style="background:white;color:#4361ee;border:none;
+    padding:10px 28px;border-radius:10px;font-family:'Cairo',sans-serif;
+    font-weight:700;cursor:pointer;font-size:0.95rem;">
+    🖨️ طباعة / حفظ PDF
+  </button>
+  <a href="/student_history/{{ student[2] }}" style="color:white;margin-right:16px;font-family:'Cairo',sans-serif;">
+    ← رجوع
+  </a>
+</div>
+
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="school-name">📚 نظام الحضور</div>
+      <div class="report-title">تقرير أداء الطالب — {{ print_date }}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div>
+        <div style="font-weight:800;font-size:1.1rem;text-align:left;">{{ student[1] }}</div>
+        <div style="color:#6b7280;font-size:0.82rem;text-align:left;">ID: {{ student[2] }}</div>
+      </div>
+      <div class="student-avatar">{{ student[1][0] }}</div>
+    </div>
+  </div>
+
+  <!-- ملخص -->
+  <div class="info-grid" style="margin-bottom:24px;">
+    <div class="info-item">
+      <div class="info-val">{{ att|length }}</div>
+      <div class="info-lbl">عدد الحصص</div>
+    </div>
+    <div class="info-item">
+      <div class="info-val" style="color:#06d6a0;">{{ att_pct }}%</div>
+      <div class="info-lbl">نسبة الحضور</div>
+    </div>
+    <div class="info-item">
+      <div class="info-val" style="color:#7209b7;">{{ total_paid }} ج</div>
+      <div class="info-lbl">إجمالي المدفوع</div>
+    </div>
+    <div class="info-item">
+      <div class="info-val" style="color:#fb8500;">{{ hw_avg }}%</div>
+      <div class="info-lbl">متوسط الواجبات</div>
+    </div>
+    <div class="info-item">
+      <div class="info-val" style="color:#ef233c;">{{ ex_avg }}%</div>
+      <div class="info-lbl">متوسط الامتحانات</div>
+    </div>
+    <div class="info-item">
+      <div class="info-val">{{ student[4]|int }} ج</div>
+      <div class="info-lbl">سعر الحصة</div>
+    </div>
+  </div>
+
+  <!-- بارات الأداء -->
+  <div class="section">
+    <div class="section-title">📊 مؤشرات الأداء</div>
+    {% for label, val, color in [('الحضور', att_pct, '#4361ee'), ('الواجبات', hw_avg, '#06d6a0'), ('الامتحانات', ex_avg, '#7209b7')] %}
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:600;margin-bottom:4px;">
+        <span>{{ label }}</span><span>{{ val }}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:{{ val }}%;background:{{ color }};"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- الحضور -->
+  {% if att %}
+  <div class="section">
+    <div class="section-title">📅 سجل الحضور (آخر 20 حصة)</div>
+    <table>
+      <thead><tr><th>#</th><th>التاريخ</th><th>الوقت</th><th>الحالة</th></tr></thead>
+      <tbody>
+        {% for a in att[:20] %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ a[0] }}</td>
+          <td>{{ a[1][:5] }}</td>
+          <td>
+            <span class="badge {% if a[2]=='متأخر' %}badge-late{% else %}badge-present{% endif %}">
+              {{ a[2] }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- الواجبات -->
+  {% if hw %}
+  <div class="section">
+    <div class="section-title">📝 الواجبات</div>
+    <table>
+      <thead><tr><th>التاريخ</th><th>الدرجة</th><th>النسبة</th></tr></thead>
+      <tbody>
+        {% for h in hw %}
+        <tr>
+          <td>{{ h[0] }}</td>
+          <td>{{ h[1] }}/{{ h[2] }}</td>
+          <td>{{ (h[1]/h[2]*100)|int }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- الامتحانات -->
+  {% if exams %}
+  <div class="section">
+    <div class="section-title">📊 الامتحانات</div>
+    <table>
+      <thead><tr><th>التاريخ</th><th>الدرجة</th><th>النسبة</th></tr></thead>
+      <tbody>
+        {% for e in exams %}
+        <tr>
+          <td>{{ e[0] }}</td>
+          <td>{{ e[1] }}/{{ e[2] }}</td>
+          <td>{{ (e[1]/e[2]*100)|int }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if student[5] %}
+  <div class="section">
+    <div class="section-title">📋 ملاحظات</div>
+    <p style="padding:12px;background:#fef3c7;border-radius:8px;font-size:0.9rem;">{{ student[5] }}</p>
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    <span>تقرير أداء الطالب: {{ student[1] }}</span>
+    <span>تاريخ الطباعة: {{ print_date }}</span>
+    <span>نظام الحضور 📚</span>
+  </div>
+</div>
+</body></html>

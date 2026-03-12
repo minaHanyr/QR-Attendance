@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الطلاب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>👥 الطلاب</h1>
+        <p>{{ students|length }} طالب</p>
+      </div>
+      <a href="/add_student" class="btn btn-primary">➕ طالب جديد</a>
+    </div>
+
+    <!-- شريط الفلترة -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-body" style="padding:14px 20px;">
+        <form method="GET" action="/students" id="filterForm"
+          style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+
+          <!-- بحث -->
+          <div style="position:relative;flex:1;min-width:180px;">
+            <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--gray);">🔍</span>
+            <input type="text" name="search" value="{{ search }}" class="form-control"
+              placeholder="ابحث باسم أو ID..."
+              style="padding-right:36px;"
+              oninput="debounceSubmit()">
+          </div>
+
+          <!-- فلتر المجموعة -->
+          <select name="group_id" class="form-control" style="width:160px;"
+            onchange="document.getElementById('filterForm').submit()">
+            <option value="">كل المجموعات</option>
+            {% for g in groups %}
+            <option value="{{ g[0] }}" {% if selected_group==g[0]|string %}selected{% endif %}>
+              {{ g[1] }}
+            </option>
+            {% endfor %}
+          </select>
+
+          <!-- ترتيب -->
+          <select name="sort" class="form-control" style="width:150px;"
+            onchange="document.getElementById('filterForm').submit()">
+            <option value="name"     {% if sort=='name'     %}selected{% endif %}>🔤 الاسم</option>
+            <option value="sessions" {% if sort=='sessions' %}selected{% endif %}>📅 الأكثر حضوراً</option>
+            <option value="paid"     {% if sort=='paid'     %}selected{% endif %}>💰 الأعلى دفعاً</option>
+          </select>
+
+          <!-- عرض: جدول / بطاقات -->
+          <div style="display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;">
+            <button type="button" id="viewTable" onclick="setView('table')"
+              class="btn btn-sm" style="border-radius:0;border:none;padding:8px 14px;">
+              ☰ جدول
+            </button>
+            <button type="button" id="viewCards" onclick="setView('cards')"
+              class="btn btn-sm" style="border-radius:0;border:none;padding:8px 14px;border-right:1.5px solid var(--border);">
+              ⊞ بطاقات
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    {% if students %}
+
+    <!-- عرض الجدول -->
+    <div id="tableView" class="card">
+      <div class="card-body" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>الطالب</th>
+              <th class="hide-mobile">ID</th>
+              <th class="hide-mobile">المجموعة</th>
+              <th style="text-align:center;">الحصص</th>
+              <th style="text-align:center;" class="hide-mobile">مدفوع</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr onclick="window.location='/student_history/{{ s[2] }}'" style="cursor:pointer;">
+              <td style="color:var(--gray);font-size:0.8rem;">{{ loop.index }}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:36px;height:36px;border-radius:10px;flex-shrink:0;
+                    background:{{ ['linear-gradient(135deg,#4361ee,#818cf8)',
+                                   'linear-gradient(135deg,#06d6a0,#028a63)',
+                                   'linear-gradient(135deg,#fb8500,#d46200)',
+                                   'linear-gradient(135deg,#ef233c,#b5162d)',
+                                   'linear-gradient(135deg,#7209b7,#480972)'][loop.index0 % 5] }};
+                    display:flex;align-items:center;justify-content:center;
+                    color:white;font-weight:900;font-size:0.95rem;">
+                    {{ s[1][0] }}
+                  </div>
+                  <div>
+                    <div style="font-weight:700;">{{ s[1] }}</div>
+                    {% if s[7] %}
+                    <div style="font-size:0.72rem;color:var(--warning);">📝 {{ s[7][:30] }}{% if s[7]|length > 30 %}...{% endif %}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td class="hide-mobile" style="font-family:monospace;color:var(--gray);">{{ s[2] }}</td>
+              <td class="hide-mobile">
+                {% if s[4] != '—' %}
+                <span class="badge badge-primary">{{ s[4] }}</span>
+                {% else %}
+                <span style="color:var(--gray);font-size:0.8rem;">—</span>
+                {% endif %}
+              </td>
+              <td style="text-align:center;">
+                <span class="badge badge-success">{{ s[5] }}</span>
+              </td>
+              <td style="text-align:center;font-weight:700;color:var(--success);" class="hide-mobile">
+                {{ s[6]|int }} ج
+              </td>
+              <td style="text-align:left;" onclick="event.stopPropagation()">
+                <div style="display:flex;gap:6px;justify-content:flex-end;">
+                  <a href="/edit_student/{{ s[0] }}" class="btn btn-outline btn-sm">✏️</a>
+                  <a href="/delete_student/{{ s[0] }}" class="btn btn-danger btn-sm"
+                    onclick="return confirm('حذف {{ s[1] }}؟')">🗑</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- عرض البطاقات -->
+    <div id="cardsView" style="display:none;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+        {% for s in students %}
+        <div class="card student-card" onclick="window.location='/student_history/{{ s[2] }}'" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;
+                background:{{ ['linear-gradient(135deg,#4361ee,#818cf8)',
+                               'linear-gradient(135deg,#06d6a0,#028a63)',
+                               'linear-gradient(135deg,#fb8500,#d46200)',
+                               'linear-gradient(135deg,#ef233c,#b5162d)',
+                               'linear-gradient(135deg,#7209b7,#480972)'][loop.index0 % 5] }};
+                display:flex;align-items:center;justify-content:center;
+                color:white;font-weight:900;font-size:1.1rem;">
+                {{ s[1][0] }}
+              </div>
+              <div>
+                <div style="font-weight:800;font-size:0.95rem;">{{ s[1] }}</div>
+                <div style="font-size:0.75rem;color:var(--gray);">{{ s[2] }}</div>
+              </div>
+            </div>
+            {% if s[4] != '—' %}
+            <div style="margin-bottom:8px;">
+              <span class="badge badge-primary" style="font-size:0.72rem;">{{ s[4] }}</span>
+            </div>
+            {% endif %}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;
+              background:var(--light);border-radius:8px;padding:8px;">
+              <div style="text-align:center;">
+                <div style="font-weight:900;color:var(--primary);">{{ s[5] }}</div>
+                <div style="font-size:0.68rem;color:var(--gray);">حصة</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-weight:900;color:var(--success);">{{ s[6]|int }} ج</div>
+                <div style="font-size:0.68rem;color:var(--gray);">مدفوع</div>
+              </div>
+            </div>
+            {% if s[7] %}
+            <div style="margin-top:8px;font-size:0.75rem;color:var(--warning);">📝 {{ s[7][:40] }}</div>
+            {% endif %}
+            <div style="display:flex;gap:6px;margin-top:10px;" onclick="event.stopPropagation()">
+              <a href="/edit_student/{{ s[0] }}" class="btn btn-outline btn-sm" style="flex:1;justify-content:center;">✏️</a>
+              <a href="/delete_student/{{ s[0] }}" class="btn btn-danger btn-sm"
+                onclick="return confirm('حذف؟')" style="flex:1;justify-content:center;">🗑</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-icon">👥</div>
+          <p>{% if search or selected_group %}لا توجد نتائج{% else %}لا يوجد طلاب بعد{% endif %}</p>
+          {% if search or selected_group %}
+          <a href="/students" class="btn btn-outline">مسح الفلتر</a>
+          {% else %}
+          <a href="/add_student" class="btn btn-primary">➕ أضف طالب</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+
+<style>
+.student-card { transition: transform 0.15s, box-shadow 0.15s; }
+.student-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+</style>
+
+<script>
+// عرض جدول / بطاقات
+function setView(v) {
+  const isTable = v === 'table';
+  document.getElementById('tableView').style.display = isTable ? '' : 'none';
+  document.getElementById('cardsView').style.display = isTable ? 'none' : '';
+  document.getElementById('viewTable').style.background = isTable ? 'var(--primary)' : '';
+  document.getElementById('viewTable').style.color = isTable ? 'white' : '';
+  document.getElementById('viewCards').style.background = !isTable ? 'var(--primary)' : '';
+  document.getElementById('viewCards').style.color = !isTable ? 'white' : '';
+  localStorage.setItem('studentsView', v);
+}
+// استعادة الـ view
+const savedView = localStorage.getItem('studentsView') || 'table';
+setView(savedView);
+
+// debounce للبحث
+let searchTimer;
+function debounceSubmit() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => document.getElementById('filterForm').submit(), 400);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>التقرير المالي الشهري</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="app-layout">
+
+{% include 'sidebar.html' %}
+
+<main class="main-content">
+
+<div class="topbar">
+
+<div class="topbar-title">
+<h1>💳 التقرير المالي الشهري</h1>
+<p>{{ month }}</p>
+</div>
+
+<div style="display:flex;gap:10px;align-items:center;">
+
+<select
+onchange="window.location='/monthly_finance?month='+this.value"
+class="form-control"
+style="width:140px;"
+>
+
+{% for m in months %}
+
+<option value="{{ m }}" {% if m == month %}selected{% endif %}>
+{{ m }}
+</option>
+
+{% endfor %}
+
+</select>
+
+<button onclick="window.print()" class="btn btn-outline">
+🖨️ طباعة
+</button>
+
+</div>
+
+</div>
+
+
+{% set color = 'var(--success)' if diff >= 0 else 'var(--danger)' %}
+
+<!-- بطاقات الملخص -->
+
+<div class="fin-summary">
+
+<div class="card" style="border-top:4px solid var(--success);">
+
+<div class="card-body fin-card">
+
+<div class="fin-val" style="color:var(--success);">
+{{ total_paid }} ج
+</div>
+
+<div class="fin-lbl">
+إجمالي المحصّل
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card" style="border-top:4px solid var(--primary);">
+
+<div class="card-body fin-card">
+
+<div class="fin-val" style="color:var(--primary);">
+{{ total_expected }} ج
+</div>
+
+<div class="fin-lbl">
+المتوقع بالحصص
+</div>
+
+</div>
+
+</div>
+
+
+<div class="card" style="border-top:4px solid {{ color }};">
+
+<div class="card-body fin-card">
+
+<div class="fin-val" style="color: {{ color }};">
+{{ "+" if diff >= 0 else "" }}{{ diff }} ج
+</div>
+
+<div class="fin-lbl">
+الفرق
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- جدول الطلاب -->
+
+<div class="card">
+
+<div class="card-header">
+<h2>📋 تفاصيل كل طالب</h2>
+</div>
+
+<div class="card-body" style="padding:0;overflow-x:auto;">
+
+{% if rows %}
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>الطالب</th>
+
+<th style="text-align:center;">الحصص</th>
+
+<th style="text-align:center;">سعر الحصة</th>
+
+<th style="text-align:center;">المتوقع</th>
+
+<th style="text-align:center;">المدفوع</th>
+
+<th style="text-align:center;">الفرق</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for r in rows %}
+
+{% set row_diff = (r[4] - r[3]) | int %}
+
+<tr>
+
+<td><b>{{ r[0] }}</b></td>
+
+<td style="text-align:center;">
+{{ r[2] }}
+</td>
+
+<td style="text-align:center;">
+{{ r[1] | int }} ج
+</td>
+
+<td style="text-align:center;">
+{{ r[3] | int }} ج
+</td>
+
+<td style="text-align:center;font-weight:700;color:var(--success);">
+{{ r[4] | int }} ج
+</td>
+
+<td style="text-align:center;">
+
+{% if row_diff >= 0 %}
+
+<span class="badge badge-success">
++{{ row_diff }} ج
+</span>
+
+{% else %}
+
+<span class="badge badge-danger">
+{{ row_diff }} ج
+</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+
+<tfoot>
+
+<tr style="font-weight:900;background:var(--light);">
+
+<td>الإجمالي</td>
+
+<td style="text-align:center;">
+{{ total_sessions }}
+</td>
+
+<td></td>
+
+<td style="text-align:center;">
+{{ total_expected }} ج
+</td>
+
+<td style="text-align:center;color:var(--success);">
+{{ total_paid }} ج
+</td>
+
+<td style="text-align:center;">
+
+{% if diff >= 0 %}
+
+<span class="badge badge-success">
++{{ diff }} ج
+</span>
+
+{% else %}
+
+<span class="badge badge-danger">
+{{ diff }} ج
+</span>
+
+{% endif %}
+
+</td>
+
+</tr>
+
+</tfoot>
+
+</table>
+
+{% else %}
+
+<div class="empty-state">
+
+<div class="empty-icon">
+💳
+</div>
+
+<p>
+لا توجد بيانات لهذا الشهر
+</p>
+
+</div>
+
+{% endif %}
+
+</div>
+
+</div>
+
+</main>
+
+</div>
+
+
+<style>
+
+.fin-summary{
+
+display:grid;
+
+grid-template-columns:repeat(3,1fr);
+
+gap:16px;
+
+margin-bottom:24px;
+
+}
+
+.fin-card{
+
+text-align:center;
+
+padding:20px;
+
+}
+
+.fin-val{
+
+font-size:1.8rem;
+
+font-weight:900;
+
+line-height:1;
+
+}
+
+.fin-lbl{
+
+color:var(--gray);
+
+font-size:0.85rem;
+
+margin-top:6px;
+
+}
+
+@media(max-width:600px){
+
+.fin-summary{
+
+grid-template-columns:1fr !important;
+
+}
+
+}
+
+@media print{
+
+.sidebar,
+
+.sidebar-toggle,
+
+.bottom-nav{
+
+display:none !important;
+
+}
+
+.main-content{
+
+margin:0 !important;
+
+padding:16px !important;
+
+}
+
+}
+
+</style>
+
+</body>
+</html>

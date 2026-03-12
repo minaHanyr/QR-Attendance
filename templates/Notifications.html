@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>الإشعارات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>🔔 الإشعارات</h1>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <form method="POST" action="/notifications/read_all">
+          <button class="btn btn-outline">✓ قراءة الكل</button>
+        </form>
+      </div>
+    </div>
+
+    {% if notifs %}
+    <div class="card">
+      <div class="card-body" style="padding:0;">
+        {% for n in notifs %}
+        <div class="notif-full-item {% if not n[5] %}unread{% endif %}"
+          onclick="window.location='{{ n[4] or '/notifications' }}'">
+          <div class="notif-icon">
+            {% if n[1]=='attendance' %}
+            ✅
+            {% elif n[1]=='warning' %}
+            ⚠️
+            {% else %}
+            🔔
+            {% endif %}
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:700;">{{ n[2] }}</div>
+            <div style="font-size:0.85rem;color:var(--gray);">{{ n[3] }}</div>
+            <div style="font-size:0.75rem;color:var(--gray);margin-top:4px;">{{ n[6] }}</div>
+          </div>
+          {% if not n[5] %}
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:4px;"></span>
+          {% endif %}
+          <div class="notif-actions">
+            <form method="POST" action="/notifications/delete/{{ n[0] }}" style="margin-left: 10px;">
+              <button type="submit" class="btn btn-sm btn-danger" style="padding: 4px 8px; font-size: 0.7rem;">❌</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-icon">🔔</div>
+          <p>لا توجد إشعارات بعد</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+</div>
+
+<style>
+.notif-full-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+
+.notif-full-item:hover {
+  background: var(--light);
+}
+
+.notif-full-item.unread {
+  border-right: 3px solid var(--primary);
+  background: rgba(67, 97, 238, 0.04);
+}
+
+.notif-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.btn-danger {
+  background-color: #f44336;
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+}
+</style>
+
+<script>
+
+function markAllAsRead() {
+    fetch('/notifications/read_all', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+  }
+document.addEventListener('DOMContentLoaded', function() {
+  // منع الانتشار (propagation) عند الضغط على زر الحذف
+  document.querySelectorAll('.notif-actions form').forEach(form => {
+    form.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  });
+});
+</script>
+</body>
+</html>

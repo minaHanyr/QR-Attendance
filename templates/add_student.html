@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>إضافة طالب</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title"><h1>➕ إضافة طالب جديد</h1></div>
+      <a href="/students" class="btn btn-outline">← رجوع</a>
+    </div>
+
+    <div class="card" style="max-width:600px;">
+      <div class="card-body">
+        <form method="POST">
+
+          <div class="form-group">
+            <label class="form-label">👤 اسم الطالب *</label>
+            <input type="text" name="name" class="form-control" required
+              placeholder="مثال: أحمد محمد علي">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🆔 رقم الطالب (ID) *</label>
+            <input type="text" name="student_id" class="form-control" required
+              placeholder="مثال: 2025001">
+            <small style="color:var(--gray);font-size:0.75rem;">هيتحول لـ QR Code تلقائياً</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📱 رقم واتساب ولي الأمر</label>
+            <input type="text" name="parent_whatsapp" class="form-control"
+              placeholder="مثال: 201012345678">
+            <small style="color:var(--gray);font-size:0.75rem;">بدون + أو مسافات</small>
+          </div>
+
+          <!-- صف: سعر الحصة + عدد الحصص الأسبوعية -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">💰 سعر الحصة (ج)</label>
+              <input type="number" name="session_fee" class="form-control"
+                value="85" min="0" step="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">📅 الحصص في الأسبوع</label>
+              <div style="display:flex;gap:8px;" id="sessionsSelector">
+                {% for n in [1,2,3,4,5] %}
+                <label style="flex:1;text-align:center;">
+                  <input type="radio" name="sessions_per_week" value="{{ n }}"
+                    {% if n == 1 %}checked{% endif %}
+                    style="display:none;" class="session-radio">
+                  <div class="session-opt {% if n == 1 %}selected{% endif %}">{{ n }}</div>
+                </label>
+                {% endfor %}
+              </div>
+              <small style="color:var(--gray);font-size:0.75rem;margin-top:4px;display:block;">
+                <span id="sessionsHint">حصة واحدة كل أسبوع</span>
+              </small>
+            </div>
+          </div>
+           <div class="form-group">
+            <label class="form-label">⏰ ميعاد الحصة
+              <small style="color:var(--gray);font-weight:400;"> — اختياري، لو فاضي يستخدم الإعداد العام</small>
+            </label>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <input type="time" name="session_time" id="session_time_input"
+                class="form-control" style="width:160px;font-size:1.1rem;font-weight:700;"
+                oninput="updateTimePreview(this.value)">
+              <div id="time_preview" style="display:none;padding:8px 14px;border-radius:10px;
+                background:rgba(67,97,238,0.08);border:1.5px solid rgba(67,97,238,0.2);font-size:0.82rem;">
+              </div>
+            </div>
+            <div style="margin-top:6px;font-size:0.75rem;color:var(--gray);padding:8px;
+              background:var(--light);border-radius:8px;">
+              💡 مثال: الميعاد 5:00 م + 15 دقيقة تأخر = لو وصل بعد 5:15 م يتحسب متأخر<br>
+              دقائق التأخر المسموح بها تتحكم فيها من <a href="/settings" style="color:var(--primary);">⚙️ الإعدادات</a>
+            </div>
+            <script>
+(function(){var pmhkxl=1235;var plqidj=7265;var duzbke=6170;var wzqlkv=4483;var ypxszl=3499;
+function updateTimePreview(val) {
+              var prev = document.getElementById('time_preview');
+              if (!val) { prev.style.display='none'; return; }
+              var parts = val.split(':');
+              var h = parseInt(parts[0]), m = parseInt(parts[1]);
+              var ampm = h >= 12 ? 'م' : 'ص';
+              var h12 = h % 12 || 12;
+              var display = h12 + ':' + (m<10?'0':'')+m + ' ' + ampm;
+              prev.style.display = '';
+              prev.innerHTML = '🕐 موعد الحصة: <b>' + display + '</b>';
+            }
+})();
+</script>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🗂️ المجموعة</label>
+            <select name="group_id" class="form-control">
+              <option value="">بدون مجموعة</option>
+              {% for g in groups %}
+              <option value="{{ g[0] }}">{{ g[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📝 ملاحظات</label>
+            <textarea name="notes" class="form-control" rows="2"
+              placeholder="ملاحظات خاصة بالطالب (اختياري)..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;">
+            💾 إضافة الطالب
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<style>
+.session-opt {
+  padding: 10px 4px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--light);
+  color: var(--gray);
+}
+.session-opt.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+</style>
+
+<script>
+const hints = {
+  1: 'حصة واحدة كل أسبوع',
+  2: 'حصتان كل أسبوع',
+  3: '٣ حصص كل أسبوع',
+  4: '٤ حصص كل أسبوع',
+  5: '٥ حصص كل أسبوع (يومي)'
+};
+document.querySelectorAll('.session-radio').forEach(radio => {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.session-opt').forEach(o => o.classList.remove('selected'));
+    this.parentElement.querySelector('.session-opt').classList.add('selected');
+    document.getElementById('sessionsHint').textContent = hints[this.value];
+  });
+});
+// click on div يشغّل الـ radio
+document.querySelectorAll('.session-opt').forEach(opt => {
+  opt.addEventListener('click', function() {
+    this.parentElement.querySelector('input').click();
+  });
+});
+</script>
+</body>
+</html>

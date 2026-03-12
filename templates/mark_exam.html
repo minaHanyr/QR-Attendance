@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الامتحانات | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📋 تسجيل الامتحانات</h1>
+        <p>سجّل درجة امتحان لطالب</p>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:560px;">
+      <div class="card-header"><h2>📋 بيانات الامتحان</h2></div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('mark_exam') }}">
+          <div class="form-grid" style="margin-bottom:20px;">
+            <div class="form-group">
+              <label for="student_id">اختر الطالب</label>
+              <select id="student_id" name="student_id" class="form-control" required>
+                {% for student in students %}
+                <option value="{{ student[2] }}">{{ student[1] }} ({{ student[2] }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="score">الدرجة</label>
+              <input type="number" id="score" name="score" class="form-control" min="0" placeholder="مثال: 45" required>
+            </div>
+            <div class="form-group">
+              <label for="max_score">الدرجة الكاملة</label>
+              <input type="number" id="max_score" name="max_score" class="form-control" min="1" placeholder="مثال: 50" required>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn btn-primary btn-lg">✅ تسجيل الدرجة</button>
+            <a href="{{ url_for('students') }}" class="btn btn-outline btn-lg">إلغاء</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الرئيسية | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>👋 الرئيسية</h1>
+        <p id="currentTime" style="color:var(--gray);"></p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span id="liveIndicator"
+          style="display:flex;align-items:center;gap:5px;font-size:0.78rem;color:var(--success);font-weight:600;">
+          <span style="width:8px;height:8px;background:var(--success);border-radius:50%;
+            animation:pulse 2s infinite;display:inline-block;"></span>
+          مباشر
+        </span>
+        <a href="/scan" class="btn btn-primary">📷 تسجيل الحضور</a>
+      </div>
+    </div>
+
+    <!-- بطاقات الإحصاء — بتتحدث تلقائياً -->
+    <div class="stats-grid">
+      <div class="stat-card stat-blue">
+        <div class="stat-icon">👨‍🎓</div>
+        <div class="stat-num">{{ total_students }}</div>
+        <div class="stat-label">إجمالي الطلاب</div>
+      </div>
+      <div class="stat-card stat-green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-num" id="livePresent">{{ present_today }}</div>
+        <div class="stat-label">حضروا اليوم</div>
+      </div>
+      <div class="stat-card stat-red" style="cursor:pointer;" onclick="window.location='/absent_today'">
+        <div class="stat-icon">❌</div>
+        <div class="stat-num" id="liveAbsent">{{ absent_today }}</div>
+        <div class="stat-label">غائبون — اضغط للتفاصيل</div>
+      </div>
+      <div class="stat-card stat-orange">
+        <div class="stat-icon">⏰</div>
+        <div class="stat-num" id="liveLate">{{ late_today }}</div>
+        <div class="stat-label">متأخرون اليوم</div>
+      </div>
+      <div class="stat-card stat-purple">
+        <div class="stat-icon">💰</div>
+        <div class="stat-num">{{ total_collected }} ج</div>
+        <div class="stat-label">إجمالي المحصّل</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;" class="charts-grid">
+      <!-- رسم الحضور - 7 أيام -->
+      <div class="card">
+        <div class="card-header"><h2>📈 الحضور آخر 7 أيام</h2></div>
+        <div class="card-body"><canvas id="attChart" height="120"></canvas></div>
+      </div>
+      <!-- دونت اليوم -->
+      <div class="card">
+        <div class="card-header"><h2>📊 توزيع اليوم</h2></div>
+        <div class="card-body" style="display:flex;align-items:center;justify-content:center;">
+          <div style="width:180px;height:180px;"><canvas id="donutChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="bottom-grid">
+
+      <!-- أحدث حضور — بيتحدث تلقائياً -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🔴 آخر الحاضرين</h2>
+          <span id="liveTime" style="font-size:0.75rem;color:var(--gray);"></span>
+        </div>
+        <div id="recentList" class="card-body" style="padding:0;min-height:120px;">
+          <div class="empty-state" style="padding:24px;">
+            <div class="empty-icon" style="font-size:2rem;">⏳</div>
+            <p>جاري التحميل...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- روابط سريعة -->
+      <div class="card">
+        <div class="card-header"><h2>⚡ روابط سريعة</h2></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <a href="/scan"           class="quick-link">📷<span>مسح QR</span></a>
+            <a href="/students"       class="quick-link">👥<span>الطلاب</span></a>
+            <a href="/fees"           class="quick-link">💰<span>المصاريف</span></a>
+            <a href="/absence_alerts" class="quick-link">📉<span>الغياب</span></a>
+            <a href="/ranking"        class="quick-link">🏆<span>الترتيب</span></a>
+            <a href="/weekly_report"  class="quick-link">📧<span>تقرير أسبوعي</span></a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- أكتر طلاب حضوراً -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header"><h2>🏆 أكتر الطلاب حضوراً</h2></div>
+      <div class="card-body" style="padding:0;">
+        {% if top_students %}
+        <table>
+          <thead><tr><th>#</th><th>الطالب</th><th style="text-align:center;">الحصص</th></tr></thead>
+          <tbody>
+            {% for s in top_students %}
+            <tr>
+              <td>{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}{{ loop.index }}{% endif %}</td>
+              <td><b>{{ s[0] }}</b></td>
+              <td style="text-align:center;"><span class="badge badge-primary">{{ s[1] }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state"><div class="empty-icon">🏆</div><p>لا توجد بيانات بعد</p></div>
+        {% endif %}
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<style>
+.stats-grid { display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:20px; }
+.stat-card { border-radius:16px;padding:20px 16px;text-align:center;color:white;position:relative;overflow:hidden; }
+.stat-card::before { content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.1); }
+.stat-blue   { background:linear-gradient(135deg,#4361ee,#3a0ca3); }
+.stat-green  { background:linear-gradient(135deg,#06d6a0,#028a63); }
+.stat-red    { background:linear-gradient(135deg,#ef233c,#b5162d); }
+.stat-orange { background:linear-gradient(135deg,#fb8500,#d46200); }
+.stat-purple { background:linear-gradient(135deg,#7209b7,#480972); }
+.stat-icon  { font-size:1.8rem;margin-bottom:6px; }
+.stat-num   { font-size:1.9rem;font-weight:900;line-height:1;transition:all 0.4s; }
+.stat-label { font-size:0.78rem;margin-top:4px;opacity:0.9; }
+.quick-link { display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;
+  border-radius:12px;background:var(--light);text-decoration:none;font-size:1.4rem;
+  font-weight:700;color:var(--dark);transition:all 0.2s;border:2px solid transparent; }
+.quick-link span { font-size:0.78rem; }
+.quick-link:hover { background:var(--primary);color:white;border-color:var(--primary); }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+.stat-num.updated { animation: numFlash 0.5s; }
+@keyframes numFlash { 0%{transform:scale(1.2);} 100%{transform:scale(1);} }
+@media(max-width:900px){ .stats-grid{grid-template-columns:repeat(3,1fr);} .charts-grid,.bottom-grid{grid-template-columns:1fr !important;} }
+@media(max-width:500px){ .stats-grid{grid-template-columns:repeat(2,1fr);} }
+</style>
+
+<script>
+// ── ساعة ─────────────────────────────────────────
+function updateTime() {
+  document.getElementById('currentTime').textContent =
+    new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+    + ' — ' + new Date().toLocaleTimeString('ar-EG');
+}
+updateTime(); setInterval(updateTime, 1000);
+
+// ── رسم الحضور ───────────────────────────────────
+const attChart = new Chart(document.getElementById('attChart'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_dates | safe }},
+    datasets: [{ label:'عدد الحاضرين', data:{{ chart_counts | safe }},
+      borderColor:'#4361ee', backgroundColor:'rgba(67,97,238,0.1)',
+      tension:0.4, fill:true, pointBackgroundColor:'#4361ee', pointRadius:5 }]
+  },
+  options: { responsive:true, plugins:{legend:{display:false}},
+    scales:{ y:{beginAtZero:true,ticks:{stepSize:1}},
+             x:{ticks:{font:{family:'Cairo'}}} } }
+});
+
+// ── دونت اليوم ───────────────────────────────────
+const donutChart = new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['في الوقت','متأخر','غائب'],
+    datasets:[{ data:[{{ on_time }},{{ late_today }},{{ absent_today }}],
+      backgroundColor:['#06d6a0','#fb8500','#ef233c'], borderWidth:0 }]
+  },
+  options:{ responsive:true, cutout:'70%',
+    plugins:{legend:{position:'bottom',labels:{font:{family:'Cairo',size:11}}}} }
+});
+
+// ── تحديث تلقائي كل 15 ثانية ─────────────────────
+let prevPresent = {{ present_today }};
+
+async function liveUpdate() {
+  try {
+    const r = await fetch('/dashboard_data');
+    const d = await r.json();
+
+    // تحديث الأرقام مع animation
+    ['Present','Absent','Late'].forEach((k,i) => {
+      const el = document.getElementById('live' + k);
+      const val = [d.present, d.absent, d.late][i];
+      if (el && el.textContent != val) {
+        el.textContent = val;
+        el.classList.remove('updated');
+        void el.offsetWidth;
+        el.classList.add('updated');
+      }
+    });
+
+    // تحديث الدونت
+    const onTime = d.present - d.late;
+    donutChart.data.datasets[0].data = [onTime > 0 ? onTime : 0, d.late, d.absent];
+    donutChart.update('none');
+
+    // آخر الحاضرين
+    document.getElementById('liveTime').textContent = 'آخر تحديث: ' + d.time;
+    const list = document.getElementById('recentList');
+    if (d.recent.length > 0) {
+      list.innerHTML = d.recent.map(s => `
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          padding:10px 16px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#4361ee,#818cf8);
+              display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:0.85rem;">
+              ${s.name[0]}
+            </div>
+            <b>${s.name}</b>
+          </div>
+          <div style="text-align:left;">
+            <span class="${s.status === 'متأخر' ? 'status-late' : 'status-present'}">${s.status}</span>
+            <div style="font-size:0.72rem;color:var(--gray);margin-top:2px;">${s.time}</div>
+          </div>
+        </div>`).join('');
+    } else {
+      list.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="empty-icon" style="font-size:2rem;">📅</div><p>لا حضور اليوم بعد</p></div>';
+    }
+  } catch(e) {
+    document.getElementById('liveIndicator').style.color = 'var(--danger)';
+  }
+}
+
+liveUpdate();
+setInterval(liveUpdate, 15000);
+</script>
+</body>
+</html>

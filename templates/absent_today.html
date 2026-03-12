@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>غائبو اليوم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>⚠️ غائبو اليوم</h1>
+        <p>{{ day_ar }} — {{ today }}</p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="sendAllWarnings()" id="sendAllBtn" class="btn btn-danger">
+          📱 إرسال تحذير للكل
+        </button>
+        <a href="/scan" class="btn btn-primary">📷 تسجيل الحضور</a>
+      </div>
+    </div>
+
+    {% if absent %}
+
+    <!-- بطاقة الملخص -->
+    <div class="card" style="margin-bottom:20px;border-right:4px solid var(--danger);">
+      <div class="card-body" style="padding:16px 20px;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="font-size:2.5rem;font-weight:900;color:var(--danger);">{{ count }}</div>
+          <div>
+            <div style="font-weight:800;font-size:1rem;">طالب غائب اليوم</div>
+            <div style="font-size:0.82rem;color:var(--gray);">
+              {% set with_phone = absent | selectattr(2) | list %}
+              {{ with_phone|length }} منهم عندهم رقم واتساب
+            </div>
+          </div>
+          <div style="margin-right:auto;">
+            <div id="progressText" style="font-size:0.8rem;color:var(--gray);text-align:center;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- قائمة الغائبين -->
+    <div class="card">
+      <div class="card-body" style="padding:0;">
+        {% for s in absent %}
+        <div class="absent-row" id="row_{{ s[1] }}">
+          <!-- أيقونة الطالب -->
+          <div class="absent-avatar">{{ s[0][0] }}</div>
+
+          <!-- الاسم والبيانات -->
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:800;font-size:0.95rem;">{{ s[0] }}</div>
+            <div style="font-size:0.75rem;color:var(--gray);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;">
+              <span>🆔 {{ s[1] }}</span>
+              {% if s[3] != '—' %}<span>🗂️ {{ s[3] }}</span>{% endif %}
+              {% if s[2] %}<span>📱 {{ s[2] }}</span>{% endif %}
+            </div>
+            <!-- شريط الحضور -->
+            {% if s[5] > 0 %}
+            {% set att_pct = (s[4] / s[5] * 100) | int %}
+            <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;background:var(--border);border-radius:20px;height:5px;overflow:hidden;max-width:120px;">
+                <div style="height:100%;width:{{ att_pct }}%;
+                  background:{% if att_pct >= 70 %}var(--success){% elif att_pct >= 50 %}var(--warning){% else %}var(--danger){% endif %};
+                  border-radius:20px;"></div>
+              </div>
+              <span style="font-size:0.7rem;color:var(--gray);">حضر {{ s[4] }}/{{ s[5] }} ({{ att_pct }}%)</span>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- الأزرار -->
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a href="/student_history/{{ s[1] }}" class="btn btn-outline btn-sm">📋</a>
+            {% if s[2] %}
+            <button onclick="sendWarning('{{ s[1] }}','{{ s[0] }}')"
+              id="warnBtn_{{ s[1] }}"
+              class="btn btn-danger btn-sm warn-btn">
+              ⚠️ تحذير
+            </button>
+            {% else %}
+            <span class="btn btn-sm" style="background:var(--light);color:var(--gray);cursor:default;">
+              لا يوجد رقم
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+      <div class="card-body">
+        <div class="empty-state" style="padding:60px 20px;">
+          <div class="empty-icon" style="font-size:4rem;">🎉</div>
+          <p style="font-size:1.1rem;font-weight:700;">ماشاء الله! كل الطلاب حضروا اليوم</p>
+          <p style="color:var(--gray);font-size:0.85rem;">{{ today }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast" style="display:none;position:fixed;bottom:28px;left:50%;
+  transform:translateX(-50%);background:#1e293b;color:white;
+  padding:12px 24px;border-radius:14px;font-weight:700;
+  font-size:0.88rem;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.3);
+  white-space:nowrap;"></div>
+
+<style>
+.absent-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.absent-row:hover  { background: var(--light); }
+.absent-row.sent   { opacity: 0.5; }
+.absent-avatar {
+  width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+  background: linear-gradient(135deg, #ef233c, #b5162d);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 1.1rem; font-weight: 900;
+}
+.warn-btn { min-width: 80px; }
+</style>
+
+<script>
+let sentCount = 0;
+const total = {{ count }};
+
+async function sendWarning(sid, name) {
+  const btn = document.getElementById('warnBtn_' + sid);
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const r = await fetch('/send_warning/' + sid);
+    const d = await r.json();
+    if (d.success) {
+      btn.textContent = '✅ أُرسل';
+      btn.style.background = 'var(--success)';
+      btn.style.borderColor = 'var(--success)';
+      document.getElementById('row_' + sid).classList.add('sent');
+      sentCount++;
+      showToast(`📱 تم إرسال تحذير لولي أمر ${name}`);
+    } else {
+      btn.textContent = '❌';
+      btn.disabled = false;
+      showToast('⚠️ ' + d.message);
+    }
+  } catch(e) {
+    btn.textContent = '❌ خطأ';
+    btn.disabled = false;
+  }
+}
+
+async function sendAllWarnings() {
+  const btn = document.getElementById('sendAllBtn');
+  const warnBtns = document.querySelectorAll('.warn-btn:not([disabled])');
+  if (!warnBtns.length) { showToast('لا يوجد أرقام للإرسال'); return; }
+  if (!confirm(`إرسال تحذير لـ ${warnBtns.length} ولي أمر؟`)) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري الإرسال...';
+
+  for (let i = 0; i < warnBtns.length; i++) {
+    const sid = warnBtns[i].id.replace('warnBtn_', '');
+    const name = warnBtns[i].closest('.absent-row')
+      .querySelector('[style*="font-weight:800"]').textContent.trim();
+    await sendWarning(sid, name);
+    btn.textContent = `⏳ ${i+1}/${warnBtns.length}...`;
+    await new Promise(r => setTimeout(r, 1200)); // تأخير بين كل رسالة
+  }
+
+  btn.textContent = `✅ تم الإرسال للكل`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.style.display = 'none', 3000);
+}
+</script>
+</body>
+</html>

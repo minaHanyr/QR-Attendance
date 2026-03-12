@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مسح QR | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1>📷 تسجيل الحضور</h1>
+        <p id="statusText" style="color:var(--gray);">اختر طريقة التسجيل</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <!-- اختصارات لوحة المفاتيح -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <kbd class="kbd-hint" title="تشغيل/إيقاف الكاميرا">C</kbd>
+          <kbd class="kbd-hint" title="تركيز على حقل الإدخال">F</kbd>
+          <kbd class="kbd-hint" title="تشغيل/إيقاف الصوت">S</kbd>
+          <kbd class="kbd-hint" title="وضع السكان السريع">X</kbd>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">
+          <input type="checkbox" id="soundToggle" checked style="width:16px;height:16px;">
+          🔊 صوت
+        </label>
+        <button class="btn btn-outline" onclick="notifyAbsent()" id="notifyBtn">
+          📱 إشعار الغايبين
+        </button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;" class="scan-grid">
+
+      <!-- الكاميرا -->
+      <div class="card">
+        <div class="card-header"><h2>📷 مسح بالكاميرا</h2></div>
+        <div class="card-body">
+          <div id="qr-reader" style="border-radius:10px;overflow:hidden;"></div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;">
+            <button id="startBtn" class="btn btn-primary" onclick="startScanner()">▶ تشغيل الكاميرا</button>
+            <button id="stopBtn" class="btn btn-outline" onclick="stopScanner()" style="display:none;">⏹ إيقاف</button>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:var(--light);border-radius:8px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:600;">
+              <input type="checkbox" id="fastMode" style="width:16px;height:16px;">
+              ⚡ وضع السكان السريع
+              <span style="font-size:0.75rem;color:var(--gray);font-weight:400;">(مش بيوقف بعد كل طالب)</span>
+            </label>
+          </div>
+          <div style="margin-top:8px;background:var(--light);border-radius:8px;padding:8px 10px;font-size:0.75rem;color:var(--gray);">
+            💡 قرّب الـ QR (10-20 سم) • إضاءة جيدة • ثبّت الورقة
+          </div>
+        </div>
+      </div>
+
+      <!-- يمين -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- إدخال يدوي -->
+        <div class="card" style="border:2px solid var(--primary);">
+          <div class="card-header"><h2>⌨️ إدخال يدوي</h2></div>
+          <div class="card-body">
+            <div style="display:flex;gap:8px;">
+              <input id="manualId" type="text" class="form-control"
+                placeholder="اكتب ID الطالب + Enter"
+                style="flex:1;font-weight:700;letter-spacing:1px;"
+                autocomplete="off"
+                onkeydown="if(event.key==='Enter'){ doRegister(this.value.trim()); this.value=''; }">
+              <button class="btn btn-primary"
+                onclick="let v=document.getElementById('manualId'); doRegister(v.value.trim()); v.value='';">✅</button>
+            </div>
+            <div id="manualResult" style="margin-top:8px;min-height:36px;"></div>
+            <div style="margin-top:10px;">
+              <p style="font-size:0.75rem;color:var(--gray);margin-bottom:8px;font-weight:600;">اختر مباشرة:</p>
+              <div id="studentBtns" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- كارت الطالب -->
+        <div class="card" id="studentCard" style="display:none;">
+          <div class="card-body">
+            <div id="studentInfo" style="padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px;"></div>
+            <div id="feesBox"></div>
+            <div id="notesBox"></div>
+            <a id="historyLink" href="#" class="btn btn-outline btn-sm" style="margin-top:10px;display:inline-block;">
+              📋 سجل الطالب
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- سجل اليوم -->
+    <div class="card" style="margin-top:24px;">
+      <div class="card-header">
+        <h2>📅 حضور اليوم</h2>
+        <span id="todayCount" class="badge badge-primary">0</span>
+      </div>
+      <div id="todayLog" class="card-body">
+        <div class="empty-state"><div class="empty-icon">📅</div><p>لا يوجد حضور بعد</p></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══ HOMEWORK POPUP ══════════════════════════════════ -->
+<div id="hwOverlay" style="display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+  <div id="hwPopup" style="background:var(--card-bg);border-radius:20px;padding:28px;
+    width:340px;max-width:95vw;text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    animation:popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);">
+
+    <!-- صورة الطالب -->
+    <div id="hwAvatar" style="width:64px;height:64px;border-radius:16px;
+      background:linear-gradient(135deg,var(--primary),#818cf8);
+      display:flex;align-items:center;justify-content:center;
+      color:white;font-size:1.8rem;font-weight:900;
+      margin:0 auto 12px;"></div>
+
+    <div id="hwStudentName" style="font-size:1.1rem;font-weight:900;margin-bottom:4px;"></div>
+    <div style="font-size:0.82rem;color:var(--gray);margin-bottom:20px;">عمل الواجب؟</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <button onclick="submitHomework(1)"
+        style="padding:16px;border-radius:14px;border:2px solid #06d6a0;
+          background:rgba(6,214,160,0.1);cursor:pointer;font-family:'Cairo',sans-serif;
+          font-size:1rem;font-weight:700;color:#06d6a0;transition:all 0.15s;"
+        onmouseover="this.style.background='#06d6a0';this.style.color='white'"
+        onmouseout="this.style.background='rgba(6,214,160,0.1)';this.style.color='#06d6a0'">
+        ✅<br><span style="font-size:0.8rem;">عمله</span>
+      </button>
+      <button onclick="submitHomework(0)"
+        style="padding:16px;border-radius:14px;border:2px solid #ef233c;
+          background:rgba(239,35,60,0.1);cursor:pointer;font-family:'Cairo',sans-serif;
+          font-size:1rem;font-weight:700;color:#ef233c;transition:all 0.15s;"
+        onmouseover="this.style.background='#ef233c';this.style.color='white'"
+        onmouseout="this.style.background='rgba(239,35,60,0.1)';this.style.color='#ef233c'">
+        ❌<br><span style="font-size:0.8rem;">ما عملوش</span>
+      </button>
+    </div>
+
+    <button onclick="closeHwPopup()"
+      style="margin-top:14px;background:none;border:none;color:var(--gray);
+        font-family:'Cairo',sans-serif;font-size:0.82rem;cursor:pointer;">
+      تخطي ←
+    </button>
+  </div>
+</div>
+
+<div id="notifyResult" style="display:none;position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%);background:var(--dark);color:white;
+  padding:12px 24px;border-radius:12px;font-weight:700;font-size:0.9rem;z-index:999;"></div>
+
+<style>
+@media(max-width:700px){ .scan-grid{ grid-template-columns:1fr !important; } }
+.stu-btn {
+  padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);
+  background:var(--white);cursor:pointer;font-family:'Cairo',sans-serif;
+  font-size:0.8rem;font-weight:600;transition:all 0.15s;
+}
+.stu-btn:hover, .stu-btn.done { background:var(--success);color:white;border-color:var(--success); }
+.stu-btn.already { background:var(--light);color:var(--gray);border-color:var(--border);cursor:default; }
+@keyframes popIn {
+  from { transform:scale(0.7);opacity:0; }
+  to   { transform:scale(1);opacity:1; }
+}
+</style>
+
+<script>
+let scanner = null;
+let todayList = [];
+let lastDetected = '';
+let lastDetectedTime = 0;
+let currentStudentId = null;   // للـ homework popup
+
+// ── صوت ──────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+function playBeep(success) {
+  if (!document.getElementById('soundToggle').checked) return;
+  try {
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = success ? 880 : 300;
+    osc.type = success ? 'sine' : 'sawtooth';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+}
+
+// ── أزرار الطلاب ─────────────────────────────────
+fetch('/students_json')
+  .then(r => r.json())
+  .then(students => {
+    document.getElementById('studentBtns').innerHTML = students.map(s =>
+      `<button class="stu-btn" id="btn_${s.student_id}"
+        onclick="doRegister('${s.student_id}','${s.name}')">${s.name}</button>`
+    ).join('');
+  }).catch(() => {});
+
+// ── كاميرا ───────────────────────────────────────
+
+function startScanner() {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = '';
+  document.getElementById('statusText').textContent = '🔄 جاري فتح الكاميرا...';
+
+  Html5Qrcode.getCameras()
+    .then(devices => {
+      if (devices && devices.length) {
+        scanner = new Html5Qrcode("qr-reader");
+        scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 15,
+            qrbox: { width: 220, height: 220 },
+            aspectRatio: 1.333,
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+          },
+          (decodedText) => {
+            const now = Date.now();
+            const cooldown = document.getElementById('fastMode').checked ? 1500 : 3000;
+            if (decodedText === lastDetected && now - lastDetectedTime < cooldown) return;
+            lastDetected = decodedText;
+            lastDetectedTime = now;
+            doRegister(decodedText.trim());
+          },
+          (errorMessage) => {
+            console.warn(errorMessage);
+            document.getElementById('statusText').textContent = '⚠️ ' + errorMessage;
+          }
+        ).then(() => {
+          document.getElementById('statusText').textContent = '🟢 الكاميرا شغالة';
+        }).catch(err => {
+          document.getElementById('statusText').textContent = '❌ ' + err;
+          document.getElementById('startBtn').style.display = '';
+          document.getElementById('stopBtn').style.display = 'none';
+        });
+      } else {
+        document.getElementById('statusText').textContent = '❌ لا توجد كاميرات متاحة';
+        document.getElementById('startBtn').style.display = '';
+        document.getElementById('stopBtn').style.display = 'none';
+      }
+    })
+    .catch(err => {
+      document.getElementById('statusText').textContent = '❌ ' + err;
+      document.getElementById('startBtn').style.display = '';
+      document.getElementById('stopBtn').style.display = 'none';
+    });
+}
+
+function stopScanner() {
+  if (scanner) scanner.stop().then(() => {
+    scanner = null;
+    document.getElementById('startBtn').style.display = '';
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('statusText').textContent = '⏸ متوقفة';
+  });
+}
+function stopScanner() {
+  if (scanner) scanner.stop().then(() => {
+    scanner = null;
+    document.getElementById('startBtn').style.display = '';
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('statusText').textContent = '⏸ متوقفة';
+  });
+}
+
+// ── تسجيل الحضور ─────────────────────────────────
+async function doRegister(sid, knownName) {
+  if (!sid) return;
+  try {
+    const r = await fetch('/scan_qr', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({student_id: sid})
+    });
+    const d = await r.json();
+    const name = d.student_name || knownName || sid;
+
+    playBeep(d.success);
+    showMsg('manualResult', (d.success ? '✅ ' : 'ℹ️ ') + d.message, d.success);
+    showStudentCard(sid, name, d.fees, d.notes, d.success, d.att_status);
+
+    const btn = document.getElementById('btn_' + sid);
+    if (btn) { btn.classList.remove('done','already'); btn.classList.add(d.success ? 'done':'already'); }
+
+    if (d.success) {
+      todayList.unshift({name, time: new Date().toLocaleTimeString('ar-EG'), status: d.att_status});
+      renderLog();
+
+      // عرض popup الواجب في كل مرة
+      currentStudentId = sid;
+      openHwPopup(name);
+    }
+    document.getElementById('manualId')?.focus();
+  } catch(e) {
+    playBeep(false);
+    showMsg('manualResult', '❌ خطأ في الاتصال', false);
+  }
+}
+
+
+// ── Homework Popup ────────────────────────────────
+function openHwPopup(name) {
+  document.getElementById('hwAvatar').textContent = name[0];
+  document.getElementById('hwStudentName').textContent = name;
+  const overlay = document.getElementById('hwOverlay');
+  overlay.style.display = 'flex';
+}
+function closeHwPopup() {
+  document.getElementById('hwOverlay').style.display = 'none';
+  currentStudentId = null;
+}
+async function submitHomework(done) {
+  if (!currentStudentId) return;
+  const sid = currentStudentId;
+  closeHwPopup();
+  try {
+    await fetch('/api/homework', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({student_id: sid, done})
+    });
+    showNotify(done ? '📝 الواجب: عمله ✅' : '📝 الواجب: ما عملوش ❌');
+  } catch(e) {}
+}
+
+// ── كارت الطالب ───────────────────────────────────
+function showStudentCard(sid, name, fees, notes, isNew, status) {
+  document.getElementById('historyLink').href = '/student_history/' + sid;
+  const statusColor = status === 'متأخر' ? 'var(--warning)' : isNew ? 'var(--success)' : 'var(--gray)';
+  const statusText  = status === 'متأخر' ? '⏰ متأخر' : isNew ? '✅ سُجِّل الآن' : 'ℹ️ حضر مسبقاً';
+
+  document.getElementById('studentInfo').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--primary),#818cf8);
+        border-radius:12px;display:flex;align-items:center;justify-content:center;
+        color:white;font-size:1.5rem;font-weight:900;flex-shrink:0;">${name[0]}</div>
+      <div>
+        <div style="font-weight:800;font-size:1.05rem;">${name}</div>
+        <div style="font-size:0.78rem;color:${statusColor};">${statusText}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('feesBox').innerHTML = fees ? `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+      background:var(--light);border-radius:10px;padding:10px;margin-bottom:8px;">
+      <div style="text-align:center;">
+        <div style="font-weight:900;font-size:1.1rem;color:var(--primary);">${fees.total_sessions}</div>
+        <div style="font-size:0.7rem;color:var(--gray);">حصة</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-weight:900;font-size:1.1rem;color:var(--success);">${fees.total_paid} ج</div>
+        <div style="font-size:0.7rem;color:var(--gray);">مدفوع</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-weight:900;font-size:1.1rem;color:var(--primary);">${fees.session_fee} ج</div>
+        <div style="font-size:0.7rem;color:var(--gray);">/ حصة</div>
+      </div>
+    </div>` : '';
+
+  document.getElementById('notesBox').innerHTML = notes && notes.trim() ? `
+    <div style="background:rgba(255,190,11,0.12);border:1.5px solid rgba(255,190,11,0.4);
+      border-radius:8px;padding:8px 12px;font-size:0.82rem;margin-bottom:8px;">
+      📝 <b>ملاحظة:</b> ${notes}
+    </div>` : '';
+
+  document.getElementById('studentCard').style.display = '';
+}
+
+function showMsg(id, msg, ok) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div style="padding:7px 12px;border-radius:8px;font-weight:700;font-size:0.85rem;
+    background:${ok?'rgba(6,214,160,0.12)':'rgba(67,97,238,0.08)'};
+    color:${ok?'var(--success)':'var(--primary)'};
+    border:1px solid ${ok?'var(--success)':'var(--primary)'};">${msg}</div>`;
+  clearTimeout(el._t); el._t = setTimeout(() => el.innerHTML='', 4000);
+}
+
+function renderLog() {
+  document.getElementById('todayCount').textContent = todayList.length;
+  document.getElementById('todayLog').innerHTML = todayList.length
+    ? `<table><thead><tr><th>#</th><th>الطالب</th><th>الوقت</th><th>الحالة</th></tr></thead><tbody>
+        ${todayList.map((s,i)=>`<tr>
+          <td>${i+1}</td><td>${s.name}</td><td>${s.time}</td>
+          <td><span class="${s.status==='متأخر'?'status-late':'status-present'}">${s.status||'حاضر'}</span></td>
+        </tr>`).join('')}
+       </tbody></table>`
+    : `<div class="empty-state"><div class="empty-icon">📅</div><p>لا يوجد حضور بعد</p></div>`;
+}
+
+async function notifyAbsent() {
+  const btn = document.getElementById('notifyBtn');
+  btn.disabled = true; btn.textContent = '⏳ جاري الإرسال...';
+  try {
+    const fd = new FormData();
+    fd.append('date', new Date().toISOString().split('T')[0]);
+    const r = await fetch('/notify_absent', {method:'POST',body:fd});
+    const d = await r.json();
+    showNotify(d.count > 0 ? `📱 تم فتح واتساب لـ ${d.count} غائب` : '✅ كل الطلاب حضروا!');
+  } catch(e) { showNotify('❌ خطأ'); }
+  btn.disabled = false; btn.textContent = '📱 إشعار الغايبين';
+}
+
+function showNotify(msg) {
+  const el = document.getElementById('notifyResult');
+  el.textContent = msg; el.style.display='block';
+  setTimeout(() => el.style.display='none', 3500);
+}
+
+// ── اختصارات لوحة المفاتيح ────────────────────────────
+document.addEventListener('keydown', e => {
+  // تجاهل لو الفوكس على input أو textarea
+  const tag = document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') {
+    // فقط Escape يخرج من الـ input
+    if (e.key === 'Escape') document.activeElement.blur();
+    return;
+  }
+
+  switch(e.key.toUpperCase()) {
+    case 'C': // كاميرا
+      e.preventDefault();
+      if (scanner) stopScanner(); else startScanner();
+      flashKbd('C');
+      break;
+    case 'F': // focus على حقل الإدخال
+      e.preventDefault();
+      const inp = document.getElementById('manualId');
+      if (inp) { inp.focus(); inp.select(); }
+      flashKbd('F');
+      break;
+    case 'S': // صوت
+      e.preventDefault();
+      const snd = document.getElementById('soundToggle');
+      snd.checked = !snd.checked;
+      showNotify(snd.checked ? '🔊 الصوت شغال' : '🔇 الصوت مقفول');
+      flashKbd('S');
+      break;
+    case 'X': // وضع سريع
+      e.preventDefault();
+      const fast = document.getElementById('fastMode');
+      fast.checked = !fast.checked;
+      showNotify(fast.checked ? '⚡ وضع سريع شغال' : '⚡ وضع سريع مقفول');
+      flashKbd('X');
+      break;
+  }
+});
+
+function flashKbd(key) {
+  const els = document.querySelectorAll('.kbd-hint');
+  els.forEach(el => {
+    if (el.textContent.trim() === key) {
+      el.classList.add('active');
+      setTimeout(() => el.classList.remove('active'), 300);
+    }
+  });
+}
+</script>
+
+<style>
+/* ── Keyboard hints ── */
+.kbd-hint {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: var(--light);
+  border: 1.5px solid var(--border);
+  border-bottom: 3px solid var(--border);
+  border-radius: 6px;
+  font-family: monospace; font-size: 0.78rem; font-weight: 700;
+  color: var(--gray); cursor: default;
+  transition: all 0.15s;
+}
+.kbd-hint:hover { border-color: var(--primary); color: var(--primary); }
+.kbd-hint.active {
+  background: var(--primary); color: white;
+  border-color: var(--primary);
+  transform: translateY(1px);
+}
+</style>
+</body>
+</html>

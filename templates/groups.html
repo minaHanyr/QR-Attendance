@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المجموعات | نظام الحضور</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+  {% include 'sidebar.html' %}
+  <main class="main-content">
+
+    <div class="topbar">
+      <div class="topbar-title"><h1>👥 المجموعات</h1></div>
+      <button class="btn btn-primary" onclick="showModal('addModal')">➕ مجموعة جديدة</button>
+    </div>
+
+    {% if groups %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+      {% for g in groups %}
+      <div class="card">
+        <div class="card-body" style="text-align:center;padding:24px 16px;">
+          <div style="font-size:2.5rem;margin-bottom:8px;">👥</div>
+          <div style="font-size:1.15rem;font-weight:800;margin-bottom:4px;">{{ g[1] }}</div>
+          <div style="color:var(--gray);font-size:0.85rem;margin-bottom:16px;">
+            {{ g[2] }} طالب
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn btn-outline btn-sm"
+              onclick="openRename({{ g[0] }}, '{{ g[1] }}')">✏️ تعديل</button>
+            <form method="POST" style="display:inline;"
+              onsubmit="return confirm('حذف المجموعة؟ الطلاب مش هيتحذفوا')">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="id" value="{{ g[0] }}">
+              <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-icon">👥</div>
+          <p>لا توجد مجموعات بعد</p>
+          <button class="btn btn-primary" onclick="showModal('addModal')">➕ أضف مجموعة</button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+
+<!-- Modal: إضافة -->
+<div id="addModal" class="modal-overlay"
+  onclick="if(event.target===this) hideModal('addModal')">
+  <div class="card" style="width:360px;max-width:95vw;">
+    <div class="card-header">
+      <h2>➕ مجموعة جديدة</h2>
+      <button onclick="hideModal('addModal')" class="btn btn-outline btn-sm">✕</button>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="add">
+        <div class="form-group">
+          <label class="form-label">اسم المجموعة</label>
+          <input type="text" name="name" class="form-control"
+            placeholder="مثال: مجموعة A — السبت 4 عصر" required autofocus>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button type="submit" class="btn btn-primary">✅ إضافة</button>
+          <button type="button" class="btn btn-outline" onclick="hideModal('addModal')">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: تعديل اسم -->
+<div id="renameModal" class="modal-overlay"
+  onclick="if(event.target===this) hideModal('renameModal')">
+  <div class="card" style="width:360px;max-width:95vw;">
+    <div class="card-header">
+      <h2>✏️ تعديل المجموعة</h2>
+      <button onclick="hideModal('renameModal')" class="btn btn-outline btn-sm">✕</button>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="rename">
+        <input type="hidden" name="id" id="renameId">
+        <div class="form-group">
+          <label class="form-label">اسم المجموعة</label>
+          <input type="text" name="name" id="renameName" class="form-control" required>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button type="submit" class="btn btn-primary">💾 حفظ</button>
+          <button type="button" class="btn btn-outline" onclick="hideModal('renameModal')">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.55); z-index:1000;
+  align-items:center; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+</style>
+
+<script>
+function showModal(id) { document.getElementById(id).classList.add('open'); }
+function hideModal(id) { document.getElementById(id).classList.remove('open'); }
+function openRename(id, name) {
+  document.getElementById('renameId').value = id;
+  document.getElementById('renameName').value = name;
+  showModal('renameModal');
+}
+</script>
+
+</body>
+</html>
